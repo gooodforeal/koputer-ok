@@ -12,8 +12,8 @@ def create_app() -> FastAPI:
     """Создание и настройка FastAPI приложения"""
     
     app = FastAPI(
-        title="OAuth2 Google Authentication API",
-        description="API для авторизации через Google OAuth2",
+        title="Komputer.ok API",
+        description="API для сайта Komputer.ok",
         version="1.0.0",
         lifespan=lifespan
     )

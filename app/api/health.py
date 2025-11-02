@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/")
 async def root():
     """Корневой эндпоинт"""
-    return {"message": "OAuth2 Google Authentication API"}
+    return {"message": "Komputer.ok API"}
 
 
 @router.get("/health")
