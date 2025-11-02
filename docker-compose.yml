@@ -1,0 +1,130 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: oauth_postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oauth_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: oauth_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    # Если REDIS_PASSWORD задан в .env, Redis будет требовать пароль
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - oauth_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oauth_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - FRONTEND_URL=http://localhost:3000
+      - BACKEND_URL=${BACKEND_URL}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - FIRST_ADMIN_EMAIL=${FIRST_ADMIN_EMAIL}
+      - FIRST_ADMIN_NAME=${FIRST_ADMIN_NAME}
+      - FIRST_ADMIN_GOOGLE_ID=${FIRST_ADMIN_GOOGLE_ID}
+      - FIRST_ADMIN_ROLE=${FIRST_ADMIN_ROLE}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_DB=${REDIS_DB}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    entrypoint: ["/bin/bash", "/app/app/entrypoint.sh"]
+    networks:
+      - oauth_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: oauth_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=${BACKEND_URL}
+      - VITE_FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/frontend
+      - /frontend/node_modules
+    stdin_open: true
+    tty: true
+    networks:
+      - oauth_network
+
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: telegram_bot/Dockerfile
+    container_name: oauth_telegram_bot
+    env_file:
+      - .env
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - oauth_network
+    restart: unless-stopped
+
+networks:
+  oauth_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

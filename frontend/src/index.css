@@ -1,0 +1,342 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Плавные переходы для смены темы */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 600ms;
+}
+
+/* Отключаем переходы для элементов, которые не должны анимироваться */
+*, *::before, *::after {
+  transition-duration: 0s !important;
+}
+
+/* Включаем переходы только для элементов с классом theme-transition */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition-duration: 600ms !important;
+}
+
+/* Плавный переход для body */
+body {
+  transition: background-color 600ms ease-in-out, color 600ms ease-in-out;
+}
+
+/* Анимация для иконки переключения темы */
+.theme-icon {
+  transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms ease-in-out;
+}
+
+.theme-icon-enter {
+  transform: rotate(180deg) scale(0.8);
+  opacity: 0;
+}
+
+.theme-icon-enter-active {
+  transform: rotate(0deg) scale(1);
+  opacity: 1;
+}
+
+.theme-icon-exit {
+  transform: rotate(0deg) scale(1);
+  opacity: 1;
+}
+
+.theme-icon-exit-active {
+  transform: rotate(-180deg) scale(0.8);
+  opacity: 0;
+}
+
+/* Декоративные фоновые узоры */
+.bg-pattern-dots {
+  background-image: radial-gradient(circle, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-pattern-grid {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-pattern-hexagon {
+  background-image: 
+    linear-gradient(30deg, rgba(59, 130, 246, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.05) 87.5%, rgba(59, 130, 246, 0.05)),
+    linear-gradient(-30deg, rgba(59, 130, 246, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.05) 87.5%, rgba(59, 130, 246, 0.05)),
+    linear-gradient(30deg, rgba(59, 130, 246, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.05) 87.5%, rgba(59, 130, 246, 0.05)),
+    linear-gradient(-30deg, rgba(59, 130, 246, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.05) 87.5%, rgba(59, 130, 246, 0.05));
+  background-size: 40px 70px;
+  background-position: 0 0, 0 35px, 20px -35px, 20px 0;
+}
+
+.bg-pattern-waves {
+  background-image: 
+    linear-gradient(45deg, rgba(59, 130, 246, 0.1) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(59, 130, 246, 0.1) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(59, 130, 246, 0.1) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(59, 130, 246, 0.1) 75%);
+  background-size: 30px 30px;
+  background-position: 0 0, 0 15px, 15px -15px, -15px 0px;
+}
+
+.bg-pattern-circuit {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.1) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(147, 51, 234, 0.1) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+}
+
+/* Анимированные градиенты */
+.bg-gradient-animated {
+  background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Плавающие элементы */
+.floating-element {
+  animation: float 6s ease-in-out infinite;
+}
+
+.floating-element:nth-child(2) {
+  animation-delay: 2s;
+}
+
+.floating-element:nth-child(3) {
+  animation-delay: 4s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+/* Пульсирующие элементы */
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  from { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+  to { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+}
+
+/* Геометрические формы */
+.geometric-shape {
+  position: absolute;
+  opacity: 0.1;
+  animation: geometricFloat 8s ease-in-out infinite;
+}
+
+.geometric-shape:nth-child(odd) {
+  animation-direction: reverse;
+}
+
+@keyframes geometricFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+  50% { transform: translateY(-30px) rotate(180deg) scale(1.1); }
+}
+
+/* Текстуры и оверлеи */
+.texture-overlay {
+  position: relative;
+}
+
+.texture-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Сетка для фона */
+.bg-mesh {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Темная тема для узоров */
+.dark .bg-pattern-dots {
+  background-image: radial-gradient(circle, rgba(59, 130, 246, 0.2) 1px, transparent 1px);
+}
+
+.dark .bg-pattern-grid {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.2) 1px, transparent 1px);
+}
+
+.dark .bg-pattern-hexagon {
+  background-image: 
+    linear-gradient(30deg, rgba(59, 130, 246, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.1) 87.5%, rgba(59, 130, 246, 0.1)),
+    linear-gradient(-30deg, rgba(59, 130, 246, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.1) 87.5%, rgba(59, 130, 246, 0.1)),
+    linear-gradient(30deg, rgba(59, 130, 246, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.1) 87.5%, rgba(59, 130, 246, 0.1)),
+    linear-gradient(-30deg, rgba(59, 130, 246, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(59, 130, 246, 0.1) 87.5%, rgba(59, 130, 246, 0.1));
+}
+
+.dark .bg-pattern-waves {
+  background-image: 
+    linear-gradient(45deg, rgba(59, 130, 246, 0.2) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(59, 130, 246, 0.2) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(59, 130, 246, 0.2) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(59, 130, 246, 0.2) 75%);
+}
+
+.dark .bg-pattern-circuit {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.2) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(147, 51, 234, 0.2) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.2) 1px, transparent 1px),
+    linear-gradient(rgba(59, 130, 246, 0.2) 1px, transparent 1px);
+}
+
+.dark .bg-mesh {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.2) 1px, transparent 1px);
+}
+
+/* Дополнительные анимации для улучшения визуального эффекта */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.shimmer-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* Улучшенные анимации для карточек */
+.feature-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Анимация для кнопок */
+.btn-animated {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-animated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.btn-animated:hover::before {
+  left: 100%;
+}
+
+/* Параллакс эффект для фоновых элементов */
+.parallax-slow {
+  animation: parallax 20s linear infinite;
+}
+
+.parallax-medium {
+  animation: parallax 15s linear infinite;
+}
+
+.parallax-fast {
+  animation: parallax 10s linear infinite;
+}
+
+@keyframes parallax {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-50px) rotate(180deg); }
+  100% { transform: translateY(0px) rotate(360deg); }
+}
+
+/* Улучшенные градиенты */
+.gradient-mesh {
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+}
+
+/* Анимация для текста */
+.text-reveal {
+  animation: textReveal 1s ease-out forwards;
+}
+
+@keyframes textReveal {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Улучшенные тени */
+.shadow-glow {
+  box-shadow: 
+    0 0 0 1px rgba(59, 130, 246, 0.1),
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-glow:hover {
+  box-shadow: 
+    0 0 0 1px rgba(59, 130, 246, 0.2),
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}

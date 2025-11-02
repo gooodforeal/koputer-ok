@@ -1,0 +1,5 @@
+aiogram==3.3.0
+httpx==0.25.2
+pydantic-settings==2.0.3
+python-dotenv==1.0.0
+

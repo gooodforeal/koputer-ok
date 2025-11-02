@@ -1,0 +1,57 @@
+"""
+Управление жизненным циклом приложения
+"""
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+from app.services.background_tasks import (
+    cleanup_cache_task,
+    cleanup_auth_tokens_task
+)
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Управление жизненным циклом приложения"""
+    
+    # Инициализация Redis
+    try:
+        from app.services.redis_service import redis_service
+        await redis_service.get_connection()
+        logger.info("Redis соединение инициализировано")
+    except Exception as e:
+        logger.error(f"Ошибка при инициализации Redis: {e}")
+        logger.warning("Приложение будет работать без кэширования")
+    
+    # Запуск фоновых задач
+    cleanup_task = asyncio.create_task(cleanup_cache_task())
+    cleanup_tokens_task = asyncio.create_task(cleanup_auth_tokens_task())
+    
+    yield
+    
+    # Остановка фоновых задач
+    cleanup_task.cancel()
+    cleanup_tokens_task.cancel()
+    
+    # Ожидание завершения задач
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+    
+    try:
+        await cleanup_tokens_task
+    except asyncio.CancelledError:
+        pass
+    
+    # Закрытие Redis соединения
+    try:
+        from app.services.redis_service import redis_service
+        await redis_service.close()
+        logger.info("Redis соединение закрыто")
+    except Exception as e:
+        logger.error(f"Ошибка при закрытии Redis соединения: {e}")
