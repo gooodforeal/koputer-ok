@@ -50,6 +50,7 @@ from app.core.app_factory import create_app
 from app.models.user import User, UserRole
 from app.models.component import Component, ComponentCategory
 from app.models.build import Build
+from app.models.feedback import Feedback, FeedbackType, FeedbackStatus
 from app.dependencies.auth import get_current_user, get_optional_user
 from app.services.redis_service import RedisService
 
@@ -192,6 +193,94 @@ async def test_components(db_session: AsyncSession) -> list[Component]:
     for component in components:
         await db_session.refresh(component)
     return components
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_feedback(db_session: AsyncSession, test_user: User) -> Feedback:
+    """Создает тестовый отзыв"""
+    feedback = Feedback(
+        title="Тестовый отзыв",
+        description="Это тестовое описание отзыва длиной более 10 символов",
+        type=FeedbackType.GENERAL,
+        status=FeedbackStatus.NEW,
+        rating=5,
+        user_id=test_user.id
+    )
+    db_session.add(feedback)
+    await db_session.commit()
+    await db_session.refresh(feedback)
+    return feedback
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: User, test_admin: User) -> list[Feedback]:
+    """Создает несколько тестовых отзывов"""
+    # Создаем дополнительные пользователи для отзывов, так как один пользователь может иметь только один отзыв
+    user3 = User(
+        email="user3@example.com",
+        name="User 3",
+        picture="https://example.com/pic3.jpg",
+        google_id="user3",
+        is_active=True,
+        role=UserRole.USER
+    )
+    user4 = User(
+        email="user4@example.com",
+        name="User 4",
+        picture="https://example.com/pic4.jpg",
+        google_id="user4",
+        is_active=True,
+        role=UserRole.USER
+    )
+    db_session.add(user3)
+    db_session.add(user4)
+    await db_session.commit()
+    await db_session.refresh(user3)
+    await db_session.refresh(user4)
+    
+    feedbacks = [
+        Feedback(
+            title="Отзыв о баге",
+            description="Обнаружен баг в системе, требуется исправление. Описание длинное.",
+            type=FeedbackType.BUG,
+            status=FeedbackStatus.NEW,
+            rating=2,
+            user_id=test_user.id
+        ),
+        Feedback(
+            title="Предложение функции",
+            description="Предлагаю добавить новую функцию для улучшения работы системы.",
+            type=FeedbackType.FEATURE,
+            status=FeedbackStatus.IN_REVIEW,
+            rating=4,
+            user_id=test_user2.id,
+            assigned_to_id=test_admin.id
+        ),
+        Feedback(
+            title="Улучшение интерфейса",
+            description="Хотелось бы улучшить пользовательский интерфейс для удобства.",
+            type=FeedbackType.IMPROVEMENT,
+            status=FeedbackStatus.IN_PROGRESS,
+            rating=5,
+            user_id=user3.id,
+            assigned_to_id=test_admin.id
+        ),
+        Feedback(
+            title="Общий отзыв",
+            description="Хороший сервис, но есть что улучшить. Это общий отзыв.",
+            type=FeedbackType.GENERAL,
+            status=FeedbackStatus.RESOLVED,
+            rating=4,
+            user_id=user4.id,
+            admin_response="Спасибо за отзыв!"
+        ),
+    ]
+    for feedback in feedbacks:
+        db_session.add(feedback)
+    await db_session.commit()
+    for feedback in feedbacks:
+        await db_session.refresh(feedback)
+    return feedbacks
 
 
 @pytest.fixture(scope="function")
