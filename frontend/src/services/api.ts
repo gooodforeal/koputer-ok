@@ -27,6 +27,17 @@ import type {
   BuildComponents,
   Component
 } from '../types/build';
+import type {
+  Balance,
+  Transaction,
+  TransactionListResponse,
+  PaymentCreate,
+  PaymentResponse,
+  BalanceStats,
+  PaymentStatus,
+  TransactionType,
+  TransactionStatus
+} from '../types/balance';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -381,6 +392,48 @@ export const buildsApi = {
     const response = await api.get(`/api/builds/${buildId}/export/pdf`, {
       responseType: 'blob'
     });
+    return response.data;
+  }
+};
+
+// Balance API functions
+export const balanceApi = {
+  // Получить баланс
+  getBalance: async (): Promise<Balance> => {
+    const response = await api.get('/balance/');
+    return response.data;
+  },
+
+  // Получить статистику баланса
+  getBalanceStats: async (): Promise<BalanceStats> => {
+    const response = await api.get('/balance/stats');
+    return response.data;
+  },
+
+  // Получить транзакции
+  getTransactions: async (
+    page: number = 1,
+    per_page: number = 20,
+    transaction_type?: TransactionType,
+    status?: TransactionStatus
+  ): Promise<TransactionListResponse> => {
+    const params: any = { page, per_page };
+    if (transaction_type) params.transaction_type = transaction_type;
+    if (status) params.status = status;
+    
+    const response = await api.get('/balance/transactions', { params });
+    return response.data;
+  },
+
+  // Создать платеж
+  createPayment: async (paymentData: PaymentCreate): Promise<PaymentResponse> => {
+    const response = await api.post('/balance/payment/create', paymentData);
+    return response.data;
+  },
+
+  // Получить статус платежа
+  getPaymentStatus: async (payment_id: string): Promise<PaymentStatus> => {
+    const response = await api.get(`/balance/payment/${payment_id}/status`);
     return response.data;
   }
 };

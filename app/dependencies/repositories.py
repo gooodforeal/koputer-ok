@@ -1,16 +1,17 @@
 """
-Зависимости для репозиториев
+Зависимости для репозиториев и сервисов
 """
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories import UserRepository, BuildRepository
+from app.repositories import UserRepository, BuildRepository, BalanceRepository, TransactionRepository
 from app.repositories.chat_repository import ChatRepository
 from app.repositories.feedback_repository import FeedbackRepository
 from app.repositories.component_repository import ComponentRepository
+from app.services.payment_service import PaymentService
 from .database import get_db_session
 
 # Зависимости для репозиториев
-__all__ = ["get_user_repository", "get_chat_repository", "get_feedback_repository", "get_build_repository", "get_component_repository"]
+__all__ = ["get_user_repository", "get_chat_repository", "get_feedback_repository", "get_build_repository", "get_component_repository", "get_balance_repository", "get_transaction_repository", "get_payment_service"]
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db_session)) -> UserRepository:
@@ -76,3 +77,46 @@ def get_component_repository(db: AsyncSession = Depends(get_db_session)) -> Comp
         ComponentRepository: Экземпляр репозитория компонентов
     """
     return ComponentRepository(db)
+
+
+def get_balance_repository(db: AsyncSession = Depends(get_db_session)) -> BalanceRepository:
+    """
+    Получить экземпляр BalanceRepository
+    
+    Args:
+        db: Сессия базы данных
+        
+    Returns:
+        BalanceRepository: Экземпляр репозитория балансов
+    """
+    return BalanceRepository(db)
+
+
+def get_transaction_repository(db: AsyncSession = Depends(get_db_session)) -> TransactionRepository:
+    """
+    Получить экземпляр TransactionRepository
+    
+    Args:
+        db: Сессия базы данных
+        
+    Returns:
+        TransactionRepository: Экземпляр репозитория транзакций
+    """
+    return TransactionRepository(db)
+
+
+def get_payment_service(
+    balance_repo: BalanceRepository = Depends(get_balance_repository),
+    transaction_repo: TransactionRepository = Depends(get_transaction_repository)
+) -> PaymentService:
+    """
+    Получить экземпляр PaymentService
+    
+    Args:
+        balance_repo: Репозиторий балансов
+        transaction_repo: Репозиторий транзакций
+        
+    Returns:
+        PaymentService: Экземпляр сервиса платежей
+    """
+    return PaymentService(balance_repo, transaction_repo)

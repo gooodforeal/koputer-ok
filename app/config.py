@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     first_admin_google_id: Optional[str] = None
     first_admin_role: Optional[str] = None
     
+    # YooKassa
+    yookassa_shop_id: str
+    yookassa_secret_key: str
+    yookassa_test_mode: bool = False  # Режим тестирования
+    
     class Config:
         env_file = ".env"
 

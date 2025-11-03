@@ -3,11 +3,15 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types/user';
 import ThemeToggle from './ThemeToggle';
+import { balanceApi } from '../services/api';
+import type { Balance } from '../types/balance';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [balance, setBalance] = useState<Balance | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -54,6 +58,43 @@ const Header: React.FC = () => {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isMobileMenuOpen]);
+
+  // Загрузка баланса пользователя
+  useEffect(() => {
+    const loadBalance = async () => {
+      if (user) {
+        try {
+          setBalanceLoading(true);
+          const balanceData = await balanceApi.getBalance();
+          setBalance(balanceData);
+        } catch (err) {
+          // Игнорируем ошибки загрузки баланса, чтобы не нарушать работу header
+          console.error('Ошибка загрузки баланса:', err);
+        } finally {
+          setBalanceLoading(false);
+        }
+      } else {
+        setBalance(null);
+      }
+    };
+
+    loadBalance();
+    
+    // Обновляем баланс при изменении маршрута (на случай, если пользователь пополнил баланс)
+    const interval = setInterval(loadBalance, 30000); // Обновляем каждые 30 секунд
+    
+    return () => clearInterval(interval);
+  }, [user, location.pathname]);
+
+  const formatAmount = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(num);
+  };
 
   return (
     <header className="theme-transition bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 pb-1 sticky top-0 z-50">
@@ -151,7 +192,14 @@ const Header: React.FC = () => {
                     >
                       {user.name}
                     </Link>
-                    <p className="text-gray-500 dark:text-gray-400">{user.email}</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-gray-500 dark:text-gray-400">{user.email}</p>
+                      {balance && (
+                        <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                          • {formatAmount(balance.balance)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -319,7 +367,14 @@ const Header: React.FC = () => {
                       }`}>
                         {user.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                      <div className="flex items-center space-x-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                        {balance && (
+                          <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                            • {formatAmount(balance.balance)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
 

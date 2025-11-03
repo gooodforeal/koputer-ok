@@ -7,6 +7,10 @@ from .build import (
     BuildCommentCreate, BuildCommentUpdate, BuildCommentResponse, BuildCommentListResponse,
     BuildStatsResponse
 )
+from .balance import (
+    BalanceResponse, TransactionBase, TransactionCreate, TransactionResponse,
+    TransactionListResponse, PaymentCreate, PaymentResponse, PaymentWebhook, BalanceStats
+)
 
 __all__ = [
     # User schemas
@@ -40,5 +44,15 @@ __all__ = [
     "BuildCommentUpdate",
     "BuildCommentResponse",
     "BuildCommentListResponse",
-    "BuildStatsResponse"
+    "BuildStatsResponse",
+    # Balance schemas
+    "BalanceResponse",
+    "TransactionBase",
+    "TransactionCreate",
+    "TransactionResponse",
+    "TransactionListResponse",
+    "PaymentCreate",
+    "PaymentResponse",
+    "PaymentWebhook",
+    "BalanceStats"
 ]

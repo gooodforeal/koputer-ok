@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole, type UserUpdate } from '../types/user';
 import { userApi } from '../services/api';
+import Balance from './Balance';
 
 const Profile: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'activity'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'balance' | 'settings' | 'activity'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [editData, setEditData] = useState<UserUpdate>({});
@@ -187,6 +188,7 @@ const Profile: React.FC = () => {
 
   const tabs = [
     { id: 'overview', label: 'Обзор', icon: '👤' },
+    { id: 'balance', label: 'Баланс', icon: '💰' },
     { id: 'settings', label: 'Настройки', icon: '⚙️' },
     { id: 'activity', label: 'Активность', icon: '📊' }
   ];
@@ -397,6 +399,10 @@ const Profile: React.FC = () => {
                 </div>
               </div>
             </>
+          )}
+
+          {activeTab === 'balance' && (
+            <Balance />
           )}
 
           {activeTab === 'settings' && (

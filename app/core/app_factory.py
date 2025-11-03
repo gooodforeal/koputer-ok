@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.lifespan import lifespan
-from app.routers import auth, users, chat, feedback, builds, components
+from app.routers import auth, users, chat, feedback, builds, components, balance
 
 
 def create_app() -> FastAPI:
@@ -41,5 +41,6 @@ def create_app() -> FastAPI:
     app.include_router(feedback.router)
     app.include_router(builds.router)
     app.include_router(components.router)
+    app.include_router(balance.router)
 
     return app

@@ -35,3 +35,7 @@ class User(BaseModel):
     builds = relationship("Build", back_populates="author", cascade="all, delete-orphan")
     build_ratings = relationship("BuildRating", back_populates="user", cascade="all, delete-orphan")
     build_comments = relationship("BuildComment", back_populates="user", cascade="all, delete-orphan")
+    
+    # Связи с балансом и транзакциями
+    balance = relationship("Balance", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")

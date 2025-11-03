@@ -17,7 +17,10 @@ from .repositories import (
     get_chat_repository,
     get_feedback_repository,
     get_build_repository,
-    get_component_repository
+    get_component_repository,
+    get_balance_repository,
+    get_transaction_repository,
+    get_payment_service
 )
 
 # Импорты из auth
@@ -43,6 +46,9 @@ __all__ = [
     "get_feedback_repository",
     "get_build_repository",
     "get_component_repository",
+    "get_balance_repository",
+    "get_transaction_repository",
+    "get_payment_service",
     
     # Auth
     "get_current_user",

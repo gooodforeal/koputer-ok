@@ -8,7 +8,8 @@ from fastapi import FastAPI
 
 from app.services.background_tasks import (
     cleanup_cache_task,
-    cleanup_auth_tokens_task
+    cleanup_auth_tokens_task,
+    check_pending_payments_task
 )
 
 logger = logging.getLogger(__name__)
@@ -30,12 +31,14 @@ async def lifespan(app: FastAPI):
     # Запуск фоновых задач
     cleanup_task = asyncio.create_task(cleanup_cache_task())
     cleanup_tokens_task = asyncio.create_task(cleanup_auth_tokens_task())
+    check_payments_task = asyncio.create_task(check_pending_payments_task())
     
     yield
     
     # Остановка фоновых задач
     cleanup_task.cancel()
     cleanup_tokens_task.cancel()
+    check_payments_task.cancel()
     
     # Ожидание завершения задач
     try:
@@ -45,6 +48,11 @@ async def lifespan(app: FastAPI):
     
     try:
         await cleanup_tokens_task
+    except asyncio.CancelledError:
+        pass
+    
+    try:
+        await check_payments_task
     except asyncio.CancelledError:
         pass
     
