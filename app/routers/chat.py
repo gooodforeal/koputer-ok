@@ -330,17 +330,17 @@ async def start_working_on_chat(
             detail="Чат не найден"
         )
     
-    # Проверяем права доступа
+    # Автоматически назначаем администратора, если он не назначен
+    if not chat.admin_id:
+        chat = await chat_repo.assign_admin_to_chat(chat_id, current_user.id)
+    
+    # Проверяем права доступа (после назначения, если необходимо)
     if (current_user.role == UserRole.ADMIN and 
         chat.admin_id != current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Вы можете начинать работу только со своими чатами"
         )
-    
-    # Автоматически назначаем администратора, если он не назначен
-    if not chat.admin_id:
-        chat = await chat_repo.assign_admin_to_chat(chat_id, current_user.id)
     
     working_chat = await chat_repo.start_working_on_chat(chat_id, current_user.id)
     return working_chat

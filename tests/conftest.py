@@ -206,41 +206,22 @@ def mock_redis_service():
     return mock_redis
 
 
-@pytest.fixture(scope="function")
-def app(override_get_db, mock_redis_service):
-    """Создает тестовое приложение FastAPI"""
+def _create_test_app(override_get_db):
+    """Вспомогательная функция для создания тестового приложения"""
     app = create_app()
     
     # Переопределяем зависимость базы данных
     app.dependency_overrides[get_db] = override_get_db
     
-    # Мокаем Redis сервис
-    with patch('app.services.redis_service.redis_service', mock_redis_service):
-        yield app
-    
-    # Очищаем переопределения после теста
-    app.dependency_overrides.clear()
+    return app
 
 
 @pytest.fixture(scope="function")
-def app2(override_get_db, mock_redis_service):
-    """Создает тестовое приложение FastAPI"""
-    app = create_app()
-    
-    # Переопределяем зависимость базы данных
-    app.dependency_overrides[get_db] = override_get_db
-    
-    # Мокаем Redis сервис
-    with patch('app.services.redis_service.redis_service', mock_redis_service):
-        yield app
-    
-    # Очищаем переопределения после теста
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture(scope="function")
-def client(app, test_user):
+def client(override_get_db, mock_redis_service, test_user):
     """Создает тестовый клиент FastAPI с авторизованным пользователем"""
+    # Создаем отдельный экземпляр приложения для этого клиента
+    app = _create_test_app(override_get_db)
+    
     # Переопределяем зависимость авторизации
     async def _get_current_user():
         return test_user
@@ -251,42 +232,134 @@ def client(app, test_user):
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    with TestClient(app) as test_client:
-        yield test_client
+    # Мокаем Redis сервис на протяжении всего теста
+    with patch('app.services.redis_service.redis_service', mock_redis_service):
+        with TestClient(app) as test_client:
+            yield test_client
     
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def unauthenticated_client(app):
+def unauthenticated_client(override_get_db, mock_redis_service):
     """Создает неавторизованный тестовый клиент"""
+    # Создаем отдельный экземпляр приложения для этого клиента
+    app = _create_test_app(override_get_db)
+    
     async def _get_optional_user():
         return None
     
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    with TestClient(app) as test_client:
-        yield test_client
+    # Мокаем Redis сервис на протяжении всего теста
+    with patch('app.services.redis_service.redis_service', mock_redis_service):
+        with TestClient(app) as test_client:
+            yield test_client
     
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def client_user2(app2, test_user2):
+def client_user2(override_get_db, mock_redis_service, test_user2):
     """Создает тестовый клиент для второго пользователя"""
+    # Создаем отдельный экземпляр приложения для этого клиента
+    app = _create_test_app(override_get_db)
+    
     async def _get_current_user():
         return test_user2
     
     async def _get_optional_user():
         return test_user2
     
-    app2.dependency_overrides[get_current_user] = _get_current_user
-    app2.dependency_overrides[get_optional_user] = _get_optional_user
+    app.dependency_overrides[get_current_user] = _get_current_user
+    app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    with TestClient(app2) as test_client:
-        yield test_client
+    # Мокаем Redis сервис на протяжении всего теста
+    with patch('app.services.redis_service.redis_service', mock_redis_service):
+        with TestClient(app) as test_client:
+            yield test_client
     
-    app2.dependency_overrides.clear()
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_admin(db_session: AsyncSession) -> User:
+    """Создает тестового администратора"""
+    user = User(
+        email="admin@example.com",
+        name="Admin User",
+        picture="https://example.com/admin.jpg",
+        google_id="admin123",
+        is_active=True,
+        role=UserRole.ADMIN
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+def admin_client(override_get_db, mock_redis_service, test_admin):
+    """Создает тестовый клиент для администратора"""
+    # Создаем отдельный экземпляр приложения для этого клиента
+    app = _create_test_app(override_get_db)
+    
+    async def _get_current_user():
+        return test_admin
+    
+    async def _get_optional_user():
+        return test_admin
+    
+    app.dependency_overrides[get_current_user] = _get_current_user
+    app.dependency_overrides[get_optional_user] = _get_optional_user
+    
+    # Мокаем Redis сервис на протяжении всего теста
+    with patch('app.services.redis_service.redis_service', mock_redis_service):
+        with TestClient(app) as test_client:
+            yield test_client
+    
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_super_admin(db_session: AsyncSession) -> User:
+    """Создает тестового супер-администратора"""
+    user = User(
+        email="superadmin@example.com",
+        name="Super Admin User",
+        picture="https://example.com/superadmin.jpg",
+        google_id="superadmin123",
+        is_active=True,
+        role=UserRole.SUPER_ADMIN
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+def super_admin_client(override_get_db, mock_redis_service, test_super_admin):
+    """Создает тестовый клиент для супер-администратора"""
+    # Создаем отдельный экземпляр приложения для этого клиента
+    app = _create_test_app(override_get_db)
+    
+    async def _get_current_user():
+        return test_super_admin
+    
+    async def _get_optional_user():
+        return test_super_admin
+    
+    app.dependency_overrides[get_current_user] = _get_current_user
+    app.dependency_overrides[get_optional_user] = _get_optional_user
+    
+    # Мокаем Redis сервис на протяжении всего теста
+    with patch('app.services.redis_service.redis_service', mock_redis_service):
+        with TestClient(app) as test_client:
+            yield test_client
+    
+    app.dependency_overrides.clear()
 
 
 # Патч для исправления проблемы совместимости pytest-asyncio с pytest 8.2+

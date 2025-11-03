@@ -1,19 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from datetime import timedelta
+import logging
 from app.repositories import UserRepository
 from app.schemas.user import UserCreate, UserResponse
-from app.schemas.auth import LogoutResponse, TelegramAuthorizeRequest, TelegramAuthorizeResponse
+from app.schemas.auth import (
+    LogoutResponse,
+    TelegramAuthorizeRequest,
+    TelegramAuthorizeResponse,
+    GoogleAuthResponse,
+    TelegramAuthInitResponse,
+    TelegramAuthCheckResponse
+)
 from app.auth import create_access_token
 from app.oauth import exchange_code_for_token, get_google_user_info
 from app.config import settings
 from app.models.user import User
 from app.dependencies import get_current_user, get_user_repository
+from app.services.auth_tokens import auth_token_storage
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
+logger = logging.getLogger(__name__)
 
-@router.get("/google")
+
+@router.get("/google", response_model=GoogleAuthResponse)
 async def google_auth():
     """Инициация OAuth2 авторизации через Google"""
     google_auth_url = (
@@ -25,7 +36,7 @@ async def google_auth():
         f"access_type=offline&"
         f"prompt=select_account"
     )
-    return {"auth_url": google_auth_url}
+    return GoogleAuthResponse(auth_url=google_auth_url)
 
 
 @router.get("/google/callback")
@@ -67,26 +78,24 @@ async def google_callback(
         return RedirectResponse(url=error_url)
 
 
-@router.get("/telegram/init")
+@router.get("/telegram/init", response_model=TelegramAuthInitResponse)
 async def telegram_auth_init():
     """
     Инициация авторизации через Telegram бот
     Создает временный токен и возвращает ссылку на бота
     """
-    from app.services.auth_tokens import auth_token_storage
-    
     # Создаем временный токен авторизации (действует 5 минут)
     auth_token = await auth_token_storage.create_token(expires_in=300)
     
     # Формируем deep link на бота с токеном
     bot_url = f"https://t.me/{settings.telegram_bot_username}?start={auth_token}"
     
-    return {
-        "auth_token": auth_token,
-        "bot_url": bot_url,
-        "bot_username": settings.telegram_bot_username,
-        "expires_in": 300  # секунд
-    }
+    return TelegramAuthInitResponse(
+        auth_token=auth_token,
+        bot_url=bot_url,
+        bot_username=settings.telegram_bot_username,
+        expires_in=300  # секунд
+    )
 
 
 @router.post("/telegram/authorize", response_model=TelegramAuthorizeResponse)
@@ -98,11 +107,6 @@ async def telegram_authorize(
     Обработка авторизации пользователя через Telegram бот
     Вызывается ботом после того, как пользователь нажал /start с токеном
     """
-    from app.services.auth_tokens import auth_token_storage
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
     logger.info(f"Обработка авторизации через Telegram для пользователя {request.telegram_id} с токеном {request.auth_token[:10]}...")
     
     # Проверяем и получаем данные токена
@@ -180,17 +184,12 @@ async def telegram_authorize(
     )
 
 
-@router.get("/telegram/check/{auth_token}")
+@router.get("/telegram/check/{auth_token}", response_model=TelegramAuthCheckResponse)
 async def telegram_auth_check(auth_token: str):
     """
     Проверка статуса авторизации по токену
     Используется для polling на клиенте
     """
-    from app.services.auth_tokens import auth_token_storage
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
     logger.debug(f"Проверка токена {auth_token[:10]}...")
     token_data = await auth_token_storage.get_token_data(auth_token)
     
@@ -214,24 +213,20 @@ async def telegram_auth_check(auth_token: str):
         if jwt_token:
             logger.info(f"Возвращаем JWT токен для {auth_token[:10]}...")
             await auth_token_storage.invalidate_token(auth_token)
-            return {
-                "status": "completed",
-                "access_token": jwt_token,
-                "telegram_id": token_data["telegram_id"],
-                "username": token_data.get("username"),
-                "first_name": token_data.get("first_name", ""),
-                "last_name": token_data.get("last_name")
-            }
+            return TelegramAuthCheckResponse(
+                status="completed",
+                access_token=jwt_token,
+                telegram_id=str(telegram_id),
+                username=token_data.get("username"),
+                first_name=token_data.get("first_name", ""),
+                last_name=token_data.get("last_name")
+            )
         else:
             logger.warning(f"Токен {auth_token[:10]}... используется, но JWT токен отсутствует!")
             logger.warning(f"Данные токена: {token_data}")
-            return {
-                "status": "pending"
-            }
+            return TelegramAuthCheckResponse(status="pending")
     
-    return {
-        "status": "pending"
-    }
+    return TelegramAuthCheckResponse(status="pending")
 
 
 @router.get("/me", response_model=UserResponse)

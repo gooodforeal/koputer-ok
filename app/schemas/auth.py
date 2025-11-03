@@ -47,6 +47,29 @@ class TelegramAuthorizeResponse(BaseModel):
     message: str
 
 
+class GoogleAuthResponse(BaseModel):
+    """Схема для ответа при инициации OAuth2 авторизации через Google"""
+    auth_url: str
+
+
+class TelegramAuthInitResponse(BaseModel):
+    """Схема для ответа при инициации авторизации через Telegram"""
+    auth_token: str
+    bot_url: str
+    bot_username: str
+    expires_in: int
+
+
+class TelegramAuthCheckResponse(BaseModel):
+    """Схема для ответа при проверке статуса авторизации через Telegram"""
+    status: str
+    access_token: Optional[str] = None
+    telegram_id: Optional[str] = None
+    username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+
 
 
 

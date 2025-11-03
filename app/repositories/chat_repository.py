@@ -17,7 +17,8 @@ class ChatRepository:
         self.db.add(chat)
         await self.db.commit()
         await self.db.refresh(chat)
-        return chat
+        # Загружаем связанные объекты
+        return await self.get_chat_by_id(chat.id) or chat
 
     async def get_chat_by_id(self, chat_id: int) -> Optional[Chat]:
         """Получить чат по ID с пользователями"""
@@ -91,6 +92,8 @@ class ChatRepository:
             
             await self.db.commit()
             await self.db.refresh(chat)
+            # Загружаем связанные объекты
+            chat = await self.get_chat_by_id(chat_id) or chat
         return chat
 
     async def create_message(self, message_data: MessageCreateWithChatId, sender_id: int) -> Message:
@@ -264,6 +267,8 @@ class ChatRepository:
             
             await self.db.commit()
             await self.db.refresh(chat)
+            # Загружаем связанные объекты
+            chat = await self.get_chat_by_id(chat_id) or chat
         return chat
 
     async def get_chats_by_status(self, status: ChatStatus) -> List[Chat]:
