@@ -10,7 +10,7 @@ const Dashboard: React.FC = () => {
   const fetchProtectedData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/users/protected');
+      const response = await api.get('/api/users/protected');
       setProtectedData(JSON.stringify(response.data, null, 2));
     } catch (error) {
       console.error('Error fetching protected data:', error);

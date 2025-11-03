@@ -22,7 +22,7 @@ import logging
 
 logger = logging.getLogger(__name__)    
 
-router = APIRouter(prefix="/api/builds", tags=["builds"])
+router = APIRouter(prefix="/builds", tags=["builds"])
 
 
 # ==================== Endpoints для сборок ====================

@@ -25,7 +25,7 @@ const Login: React.FC = () => {
 
     const checkAuthStatus = async () => {
       try {
-        const response = await api.get(`/auth/telegram/check/${telegramAuthToken}`);
+        const response = await api.get(`/api/auth/telegram/check/${telegramAuthToken}`);
         
         if (response.data.status === 'completed' && response.data.access_token) {
           // Авторизация завершена, получили JWT токен
@@ -63,7 +63,8 @@ const Login: React.FC = () => {
     try {
       setError(null);
       setIsLoading(true);
-      const response = await fetch('http://localhost:8000/auth/google');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/auth/google`);
       const data = await response.json();
       window.location.href = data.auth_url;
     } catch (error) {
@@ -79,7 +80,7 @@ const Login: React.FC = () => {
       setIsWaitingForTelegram(true);
       
       // Получаем ссылку на бота с токеном авторизации
-      const response = await api.get('/auth/telegram/init');
+      const response = await api.get('/api/auth/telegram/init');
       const { bot_url, auth_token } = response.data;
       
       setTelegramAuthToken(auth_token);

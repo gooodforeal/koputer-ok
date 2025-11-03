@@ -34,13 +34,13 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Подключение роутеров
-    app.include_router(auth.router)
-    app.include_router(users.router)
-    app.include_router(chat.router)
-    app.include_router(feedback.router)
-    app.include_router(builds.router)
-    app.include_router(components.router)
-    app.include_router(balance.router)
+    # Подключение роутеров с общим префиксом /api
+    app.include_router(auth.router, prefix="/api")
+    app.include_router(users.router, prefix="/api")
+    app.include_router(chat.router, prefix="/api")
+    app.include_router(feedback.router, prefix="/api")
+    app.include_router(builds.router, prefix="/api")
+    app.include_router(components.router, prefix="/api")
+    app.include_router(balance.router, prefix="/api")
 
     return app

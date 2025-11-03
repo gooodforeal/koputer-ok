@@ -9,7 +9,7 @@ from app.schemas.component import ComponentResponse, ParseStatusResponse, ParseS
 from app.models.user import User
 from app.services.component_parser import component_parser_service
 
-router = APIRouter(prefix="/api/components", tags=["components"])
+router = APIRouter(prefix="/components", tags=["components"])
 
 
 @router.post("/parse", response_model=ParseStartResponse)

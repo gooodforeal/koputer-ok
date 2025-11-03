@@ -137,7 +137,7 @@ POSTGRES_DB=dbname
 # Google OAuth2
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/google/callback
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
@@ -179,7 +179,9 @@ YOOKASSA_TEST_MODE=true  # true для тестового режима, false д
 2. Создайте новый проект или выберите существующий
 3. Включите Google+ API
 4. Создайте OAuth 2.0 Client ID
-5. Добавьте авторизованный redirect URI: `http://localhost:8000/auth/google/callback`
+5. Добавьте авторизованный redirect URI: `http://localhost:8000/api/auth/google/callback`
+   - **Важно**: После добавления префикса `/api` ко всем роутерам, путь callback теперь `/api/auth/google/callback`
+   - Если вы используете другой порт или домен, замените `http://localhost:8000` на ваш URL
 6. Скопируйте Client ID и Client Secret в `.env`
 
 ### Настройка Telegram Bot
@@ -195,7 +197,7 @@ YOOKASSA_TEST_MODE=true  # true для тестового режима, false д
 3. Получите Shop ID и Secret Key
 4. Добавьте их в `.env`
 5. Настройте вебхук для уведомлений о платежах:
-   - URL вебхука: `http://your-domain.com/balance/payment/webhook`
+   - URL вебхука: `http://your-domain.com/api/balance/payment/webhook`
    - Включите события: `payment.succeeded`, `payment.cancelled`
 6. Для тестирования используйте тестовые данные и установите `YOOKASSA_TEST_MODE=true`
 
@@ -282,49 +284,49 @@ python make_admin.py email@example.com "Имя Администратора" SUP
 ### Основные эндпоинты
 
 #### Аутентификация
-- `GET /auth/google` - Получить URL для авторизации через Google
-- `GET /auth/google/callback` - Callback от Google OAuth2
-- `GET /auth/telegram/init` - Инициализация авторизации через Telegram
-- `GET /auth/telegram/check/{auth_token}` - Проверка статуса авторизации
-- `POST /auth/telegram/authorize` - Завершение авторизации через Telegram
-- `GET /auth/me` - Получить информацию о текущем пользователе
-- `POST /auth/logout` - Выход из системы
+- `GET /api/auth/google` - Получить URL для авторизации через Google
+- `GET /api/auth/google/callback` - Callback от Google OAuth2
+- `GET /api/auth/telegram/init` - Инициализация авторизации через Telegram
+- `GET /api/auth/telegram/check/{auth_token}` - Проверка статуса авторизации
+- `POST /api/auth/telegram/authorize` - Завершение авторизации через Telegram
+- `GET /api/auth/me` - Получить информацию о текущем пользователе
+- `POST /api/auth/logout` - Выход из системы
 
 #### Пользователи
-- `GET /users` - Список пользователей (требует админ-прав)
-- `GET /users/{id}` - Информация о пользователе
-- `PUT /users/{id}` - Обновление пользователя
+- `GET /api/users` - Список пользователей (требует админ-прав)
+- `GET /api/users/{id}` - Информация о пользователе
+- `PUT /api/users/{id}` - Обновление пользователя
 
 #### Сборки
-- `GET /builds` - Список сборок
-- `GET /builds/{id}` - Детали сборки
-- `POST /builds` - Создание сборки (требует авторизации)
-- `PUT /builds/{id}` - Обновление сборки
-- `DELETE /builds/{id}` - Удаление сборки
+- `GET /api/builds` - Список сборок
+- `GET /api/builds/{id}` - Детали сборки
+- `POST /api/builds` - Создание сборки (требует авторизации)
+- `PUT /api/builds/{id}` - Обновление сборки
+- `DELETE /api/builds/{id}` - Удаление сборки
 
 #### Компоненты
-- `GET /components` - Список компонентов
-- `GET /components/{id}` - Детали компонента
-- `POST /components` - Создание компонента (админ)
+- `GET /api/components` - Список компонентов
+- `GET /api/components/{id}` - Детали компонента
+- `POST /api/components` - Создание компонента (админ)
 
 #### Отзывы
-- `GET /feedback` - Список отзывов
-- `POST /feedback` - Создание отзыва
-- `GET /feedback/{id}` - Детали отзыва
+- `GET /api/feedback` - Список отзывов
+- `POST /api/feedback` - Создание отзыва
+- `GET /api/feedback/{id}` - Детали отзыва
 
 #### Чат
-- `GET /chat` - Список чатов (авторизация)
-- `POST /chat` - Создание чата
-- `GET /chat/{id}` - Получение чата
-- `POST /chat/{id}/messages` - Отправка сообщения
+- `GET /api/chat` - Список чатов (авторизация)
+- `POST /api/chat` - Создание чата
+- `GET /api/chat/{id}` - Получение чата
+- `POST /api/chat/{id}/messages` - Отправка сообщения
 
 #### Баланс и платежи
-- `GET /balance` - Получить баланс текущего пользователя
-- `GET /balance/stats` - Получить статистику по балансу
-- `GET /balance/transactions` - Получить список транзакций с пагинацией
-- `POST /balance/payment/create` - Создать платеж для пополнения баланса
-- `POST /balance/payment/webhook` - Вебхук от Юкассы для обработки платежей
-- `GET /balance/payment/{payment_id}/status` - Получить статус платежа
+- `GET /api/balance` - Получить баланс текущего пользователя
+- `GET /api/balance/stats` - Получить статистику по балансу
+- `GET /api/balance/transactions` - Получить список транзакций с пагинацией
+- `POST /api/balance/payment/create` - Создать платеж для пополнения баланса
+- `POST /api/balance/payment/webhook` - Вебхук от Юкассы для обработки платежей
+- `GET /api/balance/payment/{payment_id}/status` - Получить статус платежа
 
 Подробная документация доступна по адресу `/docs` после запуска сервера.
 

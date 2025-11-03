@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsFetching(true);
     try {
       console.log('Загружаем профиль пользователя с токеном:', authToken.substring(0, 20) + '...');
-      const response = await api.get('/auth/me', {
+      const response = await api.get('/api/auth/me', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
       console.log('Профиль загружен:', response.data);

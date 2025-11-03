@@ -11,7 +11,7 @@ class TestGetUserProfile:
     @pytest.mark.asyncio
     async def test_get_user_profile_success(self, client, test_user):
         """Тест успешного получения профиля"""
-        response = client.get("/users/profile")
+        response = client.get("/api/users/profile")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -24,7 +24,7 @@ class TestGetUserProfile:
     @pytest.mark.asyncio
     async def test_get_user_profile_unauthenticated(self, unauthenticated_client):
         """Тест получения профиля неавторизованным пользователем"""
-        response = unauthenticated_client.get("/users/profile")
+        response = unauthenticated_client.get("/api/users/profile")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -35,7 +35,7 @@ class TestProtectedRoute:
     @pytest.mark.asyncio
     async def test_protected_route_success(self, client, test_user):
         """Тест успешного доступа к защищенному маршруту"""
-        response = client.get("/users/protected")
+        response = client.get("/api/users/protected")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -46,7 +46,7 @@ class TestProtectedRoute:
     @pytest.mark.asyncio
     async def test_protected_route_unauthenticated(self, unauthenticated_client):
         """Тест доступа к защищенному маршруту неавторизованным пользователем"""
-        response = unauthenticated_client.get("/users/protected")
+        response = unauthenticated_client.get("/api/users/protected")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -57,7 +57,7 @@ class TestGetUsers:
     @pytest.mark.asyncio
     async def test_get_users_success(self, super_admin_client, test_user, test_user2):
         """Тест успешного получения списка пользователей"""
-        response = super_admin_client.get("/users/")
+        response = super_admin_client.get("/api/users/")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -76,7 +76,7 @@ class TestGetUsers:
     @pytest.mark.asyncio
     async def test_get_users_with_pagination(self, super_admin_client, test_user, test_user2):
         """Тест получения списка пользователей с пагинацией"""
-        response = super_admin_client.get("/users/?skip=0&limit=1")
+        response = super_admin_client.get("/api/users/?skip=0&limit=1")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -86,21 +86,21 @@ class TestGetUsers:
     @pytest.mark.asyncio
     async def test_get_users_forbidden_for_admin(self, admin_client):
         """Тест получения списка пользователей администратором"""
-        response = admin_client.get("/users/")
+        response = admin_client.get("/api/users/")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
     @pytest.mark.asyncio
     async def test_get_users_forbidden_for_user(self, client):
         """Тест получения списка пользователей обычным пользователем"""
-        response = client.get("/users/")
+        response = client.get("/api/users/")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
     @pytest.mark.asyncio
     async def test_get_users_unauthenticated(self, unauthenticated_client):
         """Тест получения списка пользователей неавторизованным пользователем"""
-        response = unauthenticated_client.get("/users/")
+        response = unauthenticated_client.get("/api/users/")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -111,7 +111,7 @@ class TestSearchUsers:
     @pytest.mark.asyncio
     async def test_search_users_success(self, super_admin_client, test_user, test_user2):
         """Тест успешного поиска пользователей"""
-        response = super_admin_client.get("/users/search?q=Test")
+        response = super_admin_client.get("/api/users/search?q=Test")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -125,7 +125,7 @@ class TestSearchUsers:
     @pytest.mark.asyncio
     async def test_search_users_with_pagination(self, super_admin_client, test_user, test_user2):
         """Тест поиска пользователей с пагинацией"""
-        response = super_admin_client.get("/users/search?q=&page=1&per_page=1")
+        response = super_admin_client.get("/api/users/search?q=&page=1&per_page=1")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -136,7 +136,7 @@ class TestSearchUsers:
     @pytest.mark.asyncio
     async def test_search_users_with_role_filter(self, super_admin_client, test_user, test_user2):
         """Тест поиска пользователей с фильтром по роли"""
-        response = super_admin_client.get("/users/search?role=USER")
+        response = super_admin_client.get("/api/users/search?role=USER")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -148,7 +148,7 @@ class TestSearchUsers:
     @pytest.mark.asyncio
     async def test_search_users_with_active_filter(self, super_admin_client, test_user):
         """Тест поиска пользователей с фильтром по активности"""
-        response = super_admin_client.get("/users/search?is_active=true")
+        response = super_admin_client.get("/api/users/search?is_active=true")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -160,21 +160,21 @@ class TestSearchUsers:
     @pytest.mark.asyncio
     async def test_search_users_forbidden_for_admin(self, admin_client):
         """Тест поиска пользователей администратором"""
-        response = admin_client.get("/users/search")
+        response = admin_client.get("/api/users/search")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
     @pytest.mark.asyncio
     async def test_search_users_forbidden_for_user(self, client):
         """Тест поиска пользователей обычным пользователем"""
-        response = client.get("/users/search")
+        response = client.get("/api/users/search")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
     @pytest.mark.asyncio
     async def test_search_users_unauthenticated(self, unauthenticated_client):
         """Тест поиска пользователей неавторизованным пользователем"""
-        response = unauthenticated_client.get("/users/search")
+        response = unauthenticated_client.get("/api/users/search")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -185,7 +185,7 @@ class TestGetUserStats:
     @pytest.mark.asyncio
     async def test_get_user_stats_empty(self, client):
         """Тест получения статистики при отсутствии пользователей"""
-        response = client.get("/users/stats")
+        response = client.get("/api/users/stats")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -199,7 +199,7 @@ class TestGetUserStats:
     @pytest.mark.asyncio
     async def test_get_user_stats_with_data(self, client, test_user, test_user2):
         """Тест получения статистики с данными"""
-        response = client.get("/users/stats")
+        response = client.get("/api/users/stats")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -210,7 +210,7 @@ class TestGetUserStats:
     @pytest.mark.asyncio
     async def test_get_user_stats_unauthenticated(self, unauthenticated_client):
         """Тест получения статистики неавторизованным пользователем"""
-        response = unauthenticated_client.get("/users/stats")
+        response = unauthenticated_client.get("/api/users/stats")
         
         # Статистика должна быть доступна всем
         assert response.status_code == status.HTTP_200_OK
@@ -227,7 +227,7 @@ class TestUpdateUserProfile:
             "email": "updated@example.com"
         }
         
-        response = client.put("/users/profile", json=update_data)
+        response = client.put("/api/users/profile", json=update_data)
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -244,7 +244,7 @@ class TestUpdateUserProfile:
             "picture": None
         }
         
-        response = client.put("/users/profile", json=update_data)
+        response = client.put("/api/users/profile", json=update_data)
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -260,7 +260,7 @@ class TestUpdateUserProfile:
             "email": test_user.email  # Сохраняем текущий email
         }
         
-        response = client.put("/users/profile", json=update_data)
+        response = client.put("/api/users/profile", json=update_data)
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -273,7 +273,7 @@ class TestUpdateUserProfile:
             "email": "invalid-email"
         }
         
-        response = client.put("/users/profile", json=update_data)
+        response = client.put("/api/users/profile", json=update_data)
         
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
@@ -284,7 +284,7 @@ class TestUpdateUserProfile:
             "name": "New Name"
         }
         
-        response = unauthenticated_client.put("/users/profile", json=update_data)
+        response = unauthenticated_client.put("/api/users/profile", json=update_data)
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -303,7 +303,7 @@ class TestUpdateUserRole:
             "is_active": None
         }
         
-        response = super_admin_client.put(f"/users/{test_user.id}/role", json=update_data)
+        response = super_admin_client.put(f"/api/users/{test_user.id}/role", json=update_data)
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -321,7 +321,7 @@ class TestUpdateUserRole:
             "is_active": None
         }
         
-        response = super_admin_client.put(f"/users/{test_admin.id}/role", json=update_data)
+        response = super_admin_client.put(f"/api/users/{test_admin.id}/role", json=update_data)
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -338,7 +338,7 @@ class TestUpdateUserRole:
             "is_active": None
         }
         
-        response = super_admin_client.put(f"/users/{test_user.id}/role", json=update_data)
+        response = super_admin_client.put(f"/api/users/{test_user.id}/role", json=update_data)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "супер-администратора" in response.json()["detail"].lower()
@@ -354,7 +354,7 @@ class TestUpdateUserRole:
             "is_active": None
         }
         
-        response = super_admin_client.put("/users/99999/role", json=update_data)
+        response = super_admin_client.put("/api/users/99999/role", json=update_data)
         
         assert response.status_code == status.HTTP_404_NOT_FOUND
         detail = response.json().get("detail", "").lower()
@@ -367,7 +367,7 @@ class TestUpdateUserRole:
             "role": "ADMIN"
         }
         
-        response = admin_client.put(f"/users/{test_user.id}/role", json=update_data)
+        response = admin_client.put(f"/api/users/{test_user.id}/role", json=update_data)
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
@@ -378,7 +378,7 @@ class TestUpdateUserRole:
             "role": "ADMIN"
         }
         
-        response = client.put(f"/users/{test_user2.id}/role", json=update_data)
+        response = client.put(f"/api/users/{test_user2.id}/role", json=update_data)
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
@@ -389,7 +389,7 @@ class TestUpdateUserRole:
             "role": "ADMIN"
         }
         
-        response = unauthenticated_client.put(f"/users/{test_user.id}/role", json=update_data)
+        response = unauthenticated_client.put(f"/api/users/{test_user.id}/role", json=update_data)
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

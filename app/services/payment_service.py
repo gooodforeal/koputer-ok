@@ -102,7 +102,6 @@ class PaymentService:
             Словарь с результатом обработки
         """
         try:
-            logger.info(f"Processing webhook: {webhook_data}")
             
             # Парсим вебхук
             parsed_data = YooKassaService.parse_webhook(webhook_data)

@@ -60,7 +60,7 @@ class TransactionListResponse(BaseModel):
 
 class PaymentCreate(BaseModel):
     """Схема для создания платежа"""
-    amount: Decimal = Field(..., gt=0, description="Сумма пополнения")
+    amount: Decimal = Field(..., ge=50, description="Сумма пополнения (минимум 50 рублей)")
     description: Optional[str] = "Пополнение баланса"
     return_url: Optional[str] = None  # URL для возврата после оплаты
 

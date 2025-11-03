@@ -173,13 +173,13 @@ export const chatApi = {
 export const userApi = {
   // Получить профиль пользователя
   getProfile: async () => {
-    const response = await api.get('/users/profile');
+    const response = await api.get('/api/users/profile');
     return response.data;
   },
 
   // Обновить профиль пользователя
   updateProfile: async (profileData: { name?: string; email?: string; picture?: string }) => {
-    const response = await api.put('/users/profile', profileData);
+    const response = await api.put('/api/users/profile', profileData);
     return response.data;
   }
 };
@@ -400,13 +400,13 @@ export const buildsApi = {
 export const balanceApi = {
   // Получить баланс
   getBalance: async (): Promise<Balance> => {
-    const response = await api.get('/balance/');
+    const response = await api.get('/api/balance/');
     return response.data;
   },
 
   // Получить статистику баланса
   getBalanceStats: async (): Promise<BalanceStats> => {
-    const response = await api.get('/balance/stats');
+    const response = await api.get('/api/balance/stats');
     return response.data;
   },
 
@@ -421,19 +421,19 @@ export const balanceApi = {
     if (transaction_type) params.transaction_type = transaction_type;
     if (status) params.status = status;
     
-    const response = await api.get('/balance/transactions', { params });
+    const response = await api.get('/api/balance/transactions', { params });
     return response.data;
   },
 
   // Создать платеж
   createPayment: async (paymentData: PaymentCreate): Promise<PaymentResponse> => {
-    const response = await api.post('/balance/payment/create', paymentData);
+    const response = await api.post('/api/balance/payment/create', paymentData);
     return response.data;
   },
 
   // Получить статус платежа
   getPaymentStatus: async (payment_id: string): Promise<PaymentStatus> => {
-    const response = await api.get(`/balance/payment/${payment_id}/status`);
+    const response = await api.get(`/api/balance/payment/${payment_id}/status`);
     return response.data;
   }
 };

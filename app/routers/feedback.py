@@ -12,7 +12,7 @@ from app.schemas.feedback import (
 )
 import math
 
-router = APIRouter(prefix="/api/feedback", tags=["feedback"])
+router = APIRouter(prefix="/feedback", tags=["feedback"])
 
 
 @router.post("/", response_model=FeedbackResponse, status_code=status.HTTP_201_CREATED)

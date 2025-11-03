@@ -15,7 +15,7 @@ class TestGoogleAuth:
     @pytest.mark.asyncio
     async def test_google_auth_init(self, unauthenticated_client):
         """Тест инициации Google OAuth авторизации"""
-        response = unauthenticated_client.get("/auth/google")
+        response = unauthenticated_client.get("/api/auth/google")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -44,13 +44,13 @@ class TestGoogleAuth:
                     mock_exchange.return_value = "access_token_123"
                     mock_get_user.return_value = mock_google_user
                     
-                    response = unauthenticated_client.get("/auth/google/callback?code=test_code", follow_redirects=False)
+                    response = unauthenticated_client.get("/api/auth/google/callback?code=test_code", follow_redirects=False)
                     
                     # Должно быть редирект
                     assert response.status_code in [status.HTTP_307_TEMPORARY_REDIRECT, status.HTTP_302_FOUND, status.HTTP_303_SEE_OTHER]
                     location = response.headers.get("location", "")
                     assert location
-                    assert "token=" in location or "/auth/callback" in location
+                    assert "token=" in location or "/api/auth/callback" in location
         
         # Проверяем, что пользователь был создан в БД
         from app.repositories import UserRepository
@@ -68,13 +68,13 @@ class TestGoogleAuth:
                 mock_settings.frontend_url = "http://localhost:3000"
                 mock_exchange.side_effect = Exception("Token exchange failed")
                 
-                response = unauthenticated_client.get("/auth/google/callback?code=test_code", follow_redirects=False)
+                response = unauthenticated_client.get("/api/auth/google/callback?code=test_code", follow_redirects=False)
                 
                 # Должен быть редирект на страницу ошибки
                 assert response.status_code in [status.HTTP_307_TEMPORARY_REDIRECT, status.HTTP_302_FOUND, status.HTTP_303_SEE_OTHER]
                 location = response.headers.get("location", "")
                 assert location
-                assert "error" in location.lower() or "/auth/error" in location
+                assert "error" in location.lower() or "/api/auth/error" in location
     
     @pytest.mark.asyncio
     async def test_google_callback_error_get_user_info(self, unauthenticated_client):
@@ -86,13 +86,13 @@ class TestGoogleAuth:
                     mock_exchange.return_value = "access_token_123"
                     mock_get_user.side_effect = Exception("Failed to get user info")
                     
-                    response = unauthenticated_client.get("/auth/google/callback?code=test_code", follow_redirects=False)
+                    response = unauthenticated_client.get("/api/auth/google/callback?code=test_code", follow_redirects=False)
                     
                     # Должен быть редирект на страницу ошибки
                     assert response.status_code in [status.HTTP_307_TEMPORARY_REDIRECT, status.HTTP_302_FOUND, status.HTTP_303_SEE_OTHER]
                     location = response.headers.get("location", "")
                     assert location
-                    assert "error" in location.lower() or "/auth/error" in location
+                    assert "error" in location.lower() or "/api/auth/error" in location
 
 
 class TestTelegramAuth:
@@ -107,7 +107,7 @@ class TestTelegramAuth:
         with patch("app.routers.auth.auth_token_storage.create_token", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = mock_token
             
-            response = unauthenticated_client.get("/auth/telegram/init")
+            response = unauthenticated_client.get("/api/auth/telegram/init")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -149,7 +149,7 @@ class TestTelegramAuth:
                         "photo_url": "https://example.com/photo.jpg"
                     }
                     
-                    response = unauthenticated_client.post("/auth/telegram/authorize", json=request_data)
+                    response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
                     
                     assert response.status_code == status.HTTP_200_OK
                     data = response.json()
@@ -177,7 +177,7 @@ class TestTelegramAuth:
                 "first_name": "Test"
             }
             
-            response = unauthenticated_client.post("/auth/telegram/authorize", json=request_data)
+            response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
             
             assert response.status_code == status.HTTP_404_NOT_FOUND
             assert "Token not found or expired" in response.json()["detail"]
@@ -203,7 +203,7 @@ class TestTelegramAuth:
                 "first_name": "Test"
             }
             
-            response = unauthenticated_client.post("/auth/telegram/authorize", json=request_data)
+            response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
             
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "Token already used" in response.json()["detail"]
@@ -231,7 +231,7 @@ class TestTelegramAuth:
                     "first_name": "Test"
                 }
                 
-                response = unauthenticated_client.post("/auth/telegram/authorize", json=request_data)
+                response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
                 
                 assert response.status_code == status.HTTP_400_BAD_REQUEST
                 assert "Failed to link token" in response.json()["detail"]
@@ -261,7 +261,7 @@ class TestTelegramAuth:
                         "first_name": "Test"
                     }
                     
-                    response = unauthenticated_client.post("/auth/telegram/authorize", json=request_data)
+                    response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
                     
                     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
                     assert "Failed to save JWT token" in response.json()["detail"]
@@ -281,7 +281,7 @@ class TestTelegramAuth:
         with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = token_data
             
-            response = unauthenticated_client.get(f"/auth/telegram/check/{auth_token}")
+            response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -309,7 +309,7 @@ class TestTelegramAuth:
                 mock_get_token.return_value = token_data
                 mock_invalidate.return_value = True
                 
-                response = unauthenticated_client.get(f"/auth/telegram/check/{auth_token}")
+                response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
                 
                 assert response.status_code == status.HTTP_200_OK
                 data = response.json()
@@ -328,7 +328,7 @@ class TestTelegramAuth:
         with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = None
             
-            response = unauthenticated_client.get(f"/auth/telegram/check/{auth_token}")
+            response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
             
             assert response.status_code == status.HTTP_404_NOT_FOUND
             assert "Token not found or expired" in response.json()["detail"]
@@ -349,7 +349,7 @@ class TestTelegramAuth:
         with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = token_data
             
-            response = unauthenticated_client.get(f"/auth/telegram/check/{auth_token}")
+            response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -362,7 +362,7 @@ class TestGetCurrentUser:
     @pytest.mark.asyncio
     async def test_get_current_user_success(self, client, test_user):
         """Тест успешного получения информации о текущем пользователе"""
-        response = client.get("/auth/me")
+        response = client.get("/api/auth/me")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -375,7 +375,7 @@ class TestGetCurrentUser:
     @pytest.mark.asyncio
     async def test_get_current_user_unauthenticated(self, unauthenticated_client):
         """Тест получения информации о текущем пользователе без авторизации"""
-        response = unauthenticated_client.get("/auth/me")
+        response = unauthenticated_client.get("/api/auth/me")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -386,7 +386,7 @@ class TestLogout:
     @pytest.mark.asyncio
     async def test_logout_success(self, client):
         """Тест успешного выхода из системы"""
-        response = client.post("/auth/logout")
+        response = client.post("/api/auth/logout")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -396,7 +396,7 @@ class TestLogout:
     async def test_logout_unauthenticated(self, unauthenticated_client):
         """Тест выхода из системы без авторизации"""
         # Логаут должен работать для всех пользователей
-        response = unauthenticated_client.post("/auth/logout")
+        response = unauthenticated_client.post("/api/auth/logout")
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()

@@ -50,7 +50,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) => {
         params.append('is_active', statusFilter.toString());
       }
       
-      const response = await api.get(`/users/search?${params.toString()}`);
+      const response = await api.get(`/api/users/search?${params.toString()}`);
       const data: UserSearchResponse = response.data;
       
       setUsers(data.users);
@@ -93,7 +93,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) => {
 
   const handleRoleChange = async (user: User, newRole: UserRole) => {
     try {
-      await api.put(`/users/${user.id}/role`, { role: newRole });
+      await api.put(`/api/users/${user.id}/role`, { role: newRole });
       setUsers(users.map(u => u.id === user.id ? { ...u, role: newRole } : u));
       setEditingUser(null);
     } catch (err) {

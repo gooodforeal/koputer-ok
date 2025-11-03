@@ -77,7 +77,7 @@ async def handle_auth(message: types.Message, auth_token: str):
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.post(
-                    f"{settings.backend_url}/auth/telegram/authorize",
+                    f"{settings.backend_url}/api/auth/telegram/authorize",
                     json={
                         "auth_token": auth_token,
                         "telegram_id": str(user.id),
