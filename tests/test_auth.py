@@ -7,6 +7,7 @@ from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import timedelta
 from app.models.user import UserRole
 from app.schemas.auth import GoogleUserInfo
+from app.services.auth_service import AuthService
 
 
 class TestGoogleAuth:
@@ -37,8 +38,8 @@ class TestGoogleAuth:
             verified_email=True
         )
         
-        with patch("app.services.auth_service.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
-            with patch("app.services.auth_service.get_google_user_info", new_callable=AsyncMock) as mock_get_user:
+        with patch.object(AuthService, "_exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
+            with patch.object(AuthService, "_get_google_user_info", new_callable=AsyncMock) as mock_get_user:
                 with patch("app.config.settings") as mock_settings:
                     mock_settings.frontend_url = "http://localhost:3000"
                     mock_exchange.return_value = "access_token_123"
@@ -63,7 +64,7 @@ class TestGoogleAuth:
     @pytest.mark.asyncio
     async def test_google_callback_error_exchange_token(self, unauthenticated_client):
         """Тест обработки ошибки при обмене кода на токен"""
-        with patch("app.services.auth_service.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
+        with patch.object(AuthService, "_exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
             with patch("app.config.settings") as mock_settings:
                 mock_settings.frontend_url = "http://localhost:3000"
                 mock_exchange.side_effect = Exception("Token exchange failed")
@@ -79,8 +80,8 @@ class TestGoogleAuth:
     @pytest.mark.asyncio
     async def test_google_callback_error_get_user_info(self, unauthenticated_client):
         """Тест обработки ошибки при получении информации о пользователе"""
-        with patch("app.services.auth_service.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
-            with patch("app.services.auth_service.get_google_user_info", new_callable=AsyncMock) as mock_get_user:
+        with patch.object(AuthService, "_exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
+            with patch.object(AuthService, "_get_google_user_info", new_callable=AsyncMock) as mock_get_user:
                 with patch("app.config.settings") as mock_settings:
                     mock_settings.frontend_url = "http://localhost:3000"
                     mock_exchange.return_value = "access_token_123"

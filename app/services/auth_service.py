@@ -4,19 +4,20 @@
 from datetime import timedelta
 from typing import Optional
 import logging
+import httpx
 from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
 from app.repositories import UserRepository
 from app.schemas.user import UserCreate
 from app.schemas.auth import (
     GoogleAuthResponse,
+    GoogleUserInfo,
     TelegramAuthInitResponse,
     TelegramAuthorizeRequest,
     TelegramAuthorizeResponse,
     TelegramAuthCheckResponse
 )
 from app.auth import create_access_token
-from app.oauth import exchange_code_for_token, get_google_user_info
 from app.config import settings
 from app.services.auth_tokens import auth_token_storage
 
@@ -28,6 +29,85 @@ class AuthService:
     
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
+    
+    async def _exchange_code_for_token(self, code: str) -> str:
+        """
+        Обменивает код авторизации на access token
+        
+        Args:
+            code: Код авторизации от Google
+            
+        Returns:
+            str: Access token
+            
+        Raises:
+            HTTPException: Если не удалось обменять код на токен
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "client_id": settings.google_client_id,
+                        "client_secret": settings.google_client_secret,
+                        "code": code,
+                        "grant_type": "authorization_code",
+                        "redirect_uri": settings.google_redirect_uri,
+                    }
+                )
+                response.raise_for_status()
+                token_data = response.json()
+                return token_data["access_token"]
+            except httpx.HTTPStatusError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to exchange code for token: {e.response.text}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error exchanging code for token: {str(e)}"
+                )
+    
+    async def _get_google_user_info(self, access_token: str) -> GoogleUserInfo:
+        """
+        Получает информацию о пользователе от Google API
+        
+        Args:
+            access_token: Access token от Google
+            
+        Returns:
+            GoogleUserInfo: Информация о пользователе
+            
+        Raises:
+            HTTPException: Если не удалось получить информацию о пользователе
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(
+                    "https://www.googleapis.com/oauth2/v2/userinfo",
+                    headers={"Authorization": f"Bearer {access_token}"}
+                )
+                response.raise_for_status()
+                user_info = response.json()
+                
+                return GoogleUserInfo(
+                    id=user_info["id"],
+                    email=user_info["email"],
+                    name=user_info["name"],
+                    picture=user_info.get("picture"),
+                    verified_email=user_info.get("verified_email", False)
+                )
+            except httpx.HTTPStatusError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to get user info from Google: {e.response.text}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error getting user info: {str(e)}"
+                )
     
     async def get_google_auth_url(self) -> GoogleAuthResponse:
         """
@@ -59,10 +139,10 @@ class AuthService:
         """
         try:
             # Обмениваем код на access token
-            access_token = await exchange_code_for_token(code)
+            access_token = await self._exchange_code_for_token(code)
             
             # Получаем информацию о пользователе
-            google_user_info = await get_google_user_info(access_token)
+            google_user_info = await self._get_google_user_info(access_token)
             
             # Создаем или обновляем пользователя
             user_create = UserCreate(
