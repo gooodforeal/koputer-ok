@@ -1,16 +1,14 @@
 from fastapi import APIRouter, Depends, Query, Request
 from typing import Optional
-from app.dependencies import (
-    get_current_user,
-    get_balance_repository,
-    get_transaction_repository,
+from app.dependencies import get_current_user
+from app.dependencies.repositories import (
+    get_balance_service,
     get_payment_service
 )
-from app.repositories import BalanceRepository, TransactionRepository
+from app.services.balance_service import BalanceService
 from app.services.payment_service import PaymentService
 from app.schemas.balance import (
     BalanceResponse,
-    TransactionResponse,
     TransactionListResponse,
     PaymentCreate,
     PaymentResponse,
@@ -30,30 +28,19 @@ router = APIRouter(prefix="/balance", tags=["balance"])
 @router.get("/", response_model=BalanceResponse)
 async def get_balance(
     current_user: User = Depends(get_current_user),
-    balance_repo: BalanceRepository = Depends(get_balance_repository)
+    balance_service: BalanceService = Depends(get_balance_service)
 ):
     """Получить баланс текущего пользователя"""
-    balance = await balance_repo.get_or_create(current_user.id)
-    return balance
+    return await balance_service.get_balance(current_user.id)
 
 
 @router.get("/stats", response_model=BalanceStats)
 async def get_balance_stats(
     current_user: User = Depends(get_current_user),
-    balance_repo: BalanceRepository = Depends(get_balance_repository),
-    transaction_repo: TransactionRepository = Depends(get_transaction_repository)
+    balance_service: BalanceService = Depends(get_balance_service)
 ):
     """Получить статистику по балансу"""
-    balance = await balance_repo.get_or_create(current_user.id)
-    stats = await transaction_repo.get_user_transactions_stats(current_user.id)
-    
-    return BalanceStats(
-        current_balance=balance.balance,
-        total_deposited=stats['total_deposited'],
-        total_withdrawn=stats['total_withdrawn'],
-        total_spent=stats['total_spent'],
-        transactions_count=stats['transactions_count']
-    )
+    return await balance_service.get_balance_stats(current_user.id)
 
 
 @router.get("/transactions", response_model=TransactionListResponse)
@@ -63,33 +50,15 @@ async def get_transactions(
     transaction_type: Optional[TransactionType] = Query(None, description="Фильтр по типу"),
     status: Optional[TransactionStatus] = Query(None, description="Фильтр по статусу"),
     current_user: User = Depends(get_current_user),
-    transaction_repo: TransactionRepository = Depends(get_transaction_repository)
+    balance_service: BalanceService = Depends(get_balance_service)
 ):
     """Получить список транзакций текущего пользователя"""
-    skip = (page - 1) * per_page
-    
-    transactions = await transaction_repo.get_user_transactions(
+    return await balance_service.get_transactions(
         user_id=current_user.id,
-        skip=skip,
-        limit=per_page,
-        transaction_type=transaction_type,
-        status=status
-    )
-    
-    total = await transaction_repo.count_user_transactions(
-        user_id=current_user.id,
-        transaction_type=transaction_type,
-        status=status
-    )
-    
-    total_pages = (total + per_page - 1) // per_page
-    
-    return TransactionListResponse(
-        transactions=transactions,
-        total=total,
         page=page,
         per_page=per_page,
-        total_pages=total_pages
+        transaction_type=transaction_type,
+        status=status
     )
 
 

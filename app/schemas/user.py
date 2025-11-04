@@ -36,7 +36,7 @@ class UserResponse(UserBase):
 class UserUpdate(BaseModel):
     """Схема для обновления пользователя"""
     name: Optional[str] = None
-    email: Optional[EmailStr] = Field(max_length=30)
+    email: Optional[EmailStr] = None
     picture: Optional[str] = None
     is_active: Optional[bool] = None
     role: Optional[UserRole] = None

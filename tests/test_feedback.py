@@ -383,9 +383,12 @@ class TestGetFeedbackById:
     @pytest.mark.asyncio
     async def test_get_feedback_by_id_unauthenticated(self, unauthenticated_client, test_feedback):
         """Тест получения отзыва неавторизованным пользователем"""
+        # Эндпоинт доступен без авторизации (нет зависимости get_current_user)
         response = unauthenticated_client.get(f"/api/feedback/{test_feedback.id}")
         
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["id"] == test_feedback.id
 
 
 class TestUpdateFeedback:

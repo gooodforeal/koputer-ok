@@ -37,8 +37,8 @@ class TestGoogleAuth:
             verified_email=True
         )
         
-        with patch("app.routers.auth.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
-            with patch("app.routers.auth.get_google_user_info", new_callable=AsyncMock) as mock_get_user:
+        with patch("app.services.auth_service.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
+            with patch("app.services.auth_service.get_google_user_info", new_callable=AsyncMock) as mock_get_user:
                 with patch("app.config.settings") as mock_settings:
                     mock_settings.frontend_url = "http://localhost:3000"
                     mock_exchange.return_value = "access_token_123"
@@ -50,7 +50,7 @@ class TestGoogleAuth:
                     assert response.status_code in [status.HTTP_307_TEMPORARY_REDIRECT, status.HTTP_302_FOUND, status.HTTP_303_SEE_OTHER]
                     location = response.headers.get("location", "")
                     assert location
-                    assert "token=" in location or "/api/auth/callback" in location
+                    assert "token=" in location or "/auth/callback" in location
         
         # Проверяем, что пользователь был создан в БД
         from app.repositories import UserRepository
@@ -63,7 +63,7 @@ class TestGoogleAuth:
     @pytest.mark.asyncio
     async def test_google_callback_error_exchange_token(self, unauthenticated_client):
         """Тест обработки ошибки при обмене кода на токен"""
-        with patch("app.routers.auth.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
+        with patch("app.services.auth_service.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
             with patch("app.config.settings") as mock_settings:
                 mock_settings.frontend_url = "http://localhost:3000"
                 mock_exchange.side_effect = Exception("Token exchange failed")
@@ -79,8 +79,8 @@ class TestGoogleAuth:
     @pytest.mark.asyncio
     async def test_google_callback_error_get_user_info(self, unauthenticated_client):
         """Тест обработки ошибки при получении информации о пользователе"""
-        with patch("app.routers.auth.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
-            with patch("app.routers.auth.get_google_user_info", new_callable=AsyncMock) as mock_get_user:
+        with patch("app.services.auth_service.exchange_code_for_token", new_callable=AsyncMock) as mock_exchange:
+            with patch("app.services.auth_service.get_google_user_info", new_callable=AsyncMock) as mock_get_user:
                 with patch("app.config.settings") as mock_settings:
                     mock_settings.frontend_url = "http://localhost:3000"
                     mock_exchange.return_value = "access_token_123"
@@ -104,7 +104,7 @@ class TestTelegramAuth:
         # Мокируем auth_token_storage
         mock_token = "test_auth_token_123"
         
-        with patch("app.routers.auth.auth_token_storage.create_token", new_callable=AsyncMock) as mock_create:
+        with patch("app.services.auth_tokens.auth_token_storage.create_token", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = mock_token
             
             response = unauthenticated_client.get("/api/auth/telegram/init")
@@ -133,9 +133,9 @@ class TestTelegramAuth:
         }
         
         # Мокируем методы auth_token_storage
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.routers.auth.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
-                with patch("app.routers.auth.auth_token_storage.update_token_data", new_callable=AsyncMock) as mock_update:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+            with patch("app.services.auth_tokens.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
+                with patch("app.services.auth_tokens.auth_token_storage.update_token_data", new_callable=AsyncMock) as mock_update:
                     mock_get_token.return_value = token_data
                     mock_link.return_value = True
                     mock_update.return_value = True
@@ -168,7 +168,7 @@ class TestTelegramAuth:
         """Тест авторизации с несуществующим токеном"""
         auth_token = "invalid_token"
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = None
             
             request_data = {
@@ -194,7 +194,7 @@ class TestTelegramAuth:
             "used": True
         }
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = token_data
             
             request_data = {
@@ -220,8 +220,8 @@ class TestTelegramAuth:
             "used": False
         }
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.routers.auth.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+            with patch("app.services.auth_tokens.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
                 mock_get_token.return_value = token_data
                 mock_link.return_value = False
                 
@@ -248,9 +248,9 @@ class TestTelegramAuth:
             "used": False
         }
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.routers.auth.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
-                with patch("app.routers.auth.auth_token_storage.update_token_data", new_callable=AsyncMock) as mock_update:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+            with patch("app.services.auth_tokens.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
+                with patch("app.services.auth_tokens.auth_token_storage.update_token_data", new_callable=AsyncMock) as mock_update:
                     mock_get_token.return_value = token_data
                     mock_link.return_value = True
                     mock_update.return_value = False  # Не удалось сохранить JWT
@@ -278,7 +278,7 @@ class TestTelegramAuth:
             "used": False
         }
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = token_data
             
             response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
@@ -304,8 +304,8 @@ class TestTelegramAuth:
             "jwt_token": "jwt_token_123"
         }
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.routers.auth.auth_token_storage.invalidate_token", new_callable=AsyncMock) as mock_invalidate:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+            with patch("app.services.auth_tokens.auth_token_storage.invalidate_token", new_callable=AsyncMock) as mock_invalidate:
                 mock_get_token.return_value = token_data
                 mock_invalidate.return_value = True
                 
@@ -325,7 +325,7 @@ class TestTelegramAuth:
         """Тест проверки несуществующего токена"""
         auth_token = "invalid_token"
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = None
             
             response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
@@ -346,7 +346,7 @@ class TestTelegramAuth:
             "jwt_token": None
         }
         
-        with patch("app.routers.auth.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
+        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
             mock_get_token.return_value = token_data
             
             response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")

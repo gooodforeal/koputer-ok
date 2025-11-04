@@ -20,7 +20,13 @@ from .repositories import (
     get_component_repository,
     get_balance_repository,
     get_transaction_repository,
-    get_payment_service
+    get_payment_service,
+    get_auth_service,
+    get_build_service,
+    get_chat_service,
+    get_feedback_service,
+    get_user_service,
+    get_balance_service
 )
 
 # Импорты из auth
@@ -49,6 +55,14 @@ __all__ = [
     "get_balance_repository",
     "get_transaction_repository",
     "get_payment_service",
+    
+    # Services
+    "get_auth_service",
+    "get_build_service",
+    "get_chat_service",
+    "get_feedback_service",
+    "get_user_service",
+    "get_balance_service",
     
     # Auth
     "get_current_user",
