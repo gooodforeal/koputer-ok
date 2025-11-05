@@ -6,8 +6,8 @@ from pydantic_settings import BaseSettings
 
 class BotSettings(BaseSettings):
     """Настройки бота"""
-    telegram_bot_token: str = "7963592516:AAEZipr26SvCBTNZ-qKVM9uF21SDTUy_uvk"
-    backend_url: str = "http://backend:8000"
+    telegram_bot_token: str
+    backend_url: str
     
     class Config:
         env_file = ".env"
