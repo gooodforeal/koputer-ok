@@ -4,10 +4,12 @@
 from typing import Dict, Any, Optional
 from decimal import Decimal
 from fastapi import HTTPException, status
-from app.repositories import BalanceRepository, TransactionRepository
+from app.repositories import BalanceRepository, TransactionRepository, UserRepository
 from app.services.yookassa_service import YooKassaService
+from app.services.email_publisher import email_publisher
 from app.models.balance import TransactionType, TransactionStatus
 from app.schemas.balance import PaymentCreate, PaymentResponse
+from datetime import datetime
 import logging
 
 
@@ -20,10 +22,12 @@ class PaymentService:
     def __init__(
         self,
         balance_repo: BalanceRepository,
-        transaction_repo: TransactionRepository
+        transaction_repo: TransactionRepository,
+        user_repo: Optional[UserRepository] = None
     ):
         self.balance_repo = balance_repo
         self.transaction_repo = transaction_repo
+        self.user_repo = user_repo
     
     async def create_payment(
         self,
@@ -237,6 +241,24 @@ class PaymentService:
             f"Balance after deposit: {balance.balance}, "
             f"Transaction {transaction.id} updated to COMPLETED"
         )
+        
+        # Отправляем email о пополнении баланса (если email указан)
+        if self.user_repo:
+            try:
+                user = await self.user_repo.get_by_id(transaction.user_id)
+                if user and user.email:
+                    payment_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    await email_publisher.publish_balance_email(
+                        email=user.email,
+                        user_name=user.name,
+                        amount=str(transaction.amount),
+                        new_balance=str(balance.balance),
+                        payment_time=payment_time,
+                        transaction_id=str(transaction.id)
+                    )
+            except Exception as e:
+                # Логируем ошибку, но не прерываем процесс пополнения
+                logger.error(f"Ошибка при отправке email о пополнении баланса: {str(e)}")
     
     async def _handle_cancelled_payment(self, transaction) -> None:
         """

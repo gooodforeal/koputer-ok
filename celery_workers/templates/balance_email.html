@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Баланс успешно пополнен</title>
+    <style>
+        /* Сброс стилей для email клиентов */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        /* Специальные свойства для Microsoft Outlook */
+        table, td {
+            mso-table-lspace: 0pt; /* stylelint-disable-line */
+            mso-table-rspace: 0pt; /* stylelint-disable-line */
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            outline: none;
+            text-decoration: none;
+        }
+        
+        /* Основные стили */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+            height: 100% !important;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+        }
+        
+        .email-wrapper {
+            width: 100%;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            padding: 40px 20px;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* Шапка с градиентом */
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .logo-container {
+            display: inline-block;
+            width: 64px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo-icon {
+            font-size: 40px;
+            line-height: 1;
+            display: block;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header .subtitle {
+            margin: 8px 0 0 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Контент */
+        .content {
+            padding: 40px 30px;
+            background: #ffffff;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            color: #1f2937;
+            margin: 0 0 24px 0;
+            font-weight: 500;
+        }
+        
+        .greeting strong {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .message {
+            font-size: 16px;
+            color: #4b5563;
+            margin: 0 0 24px 0;
+            line-height: 1.7;
+        }
+        
+        .success-box {
+            background: #ffffff;
+            border-left: 4px solid #10b981;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .amount-box {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            text-align: center;
+            border: 2px solid #10b981;
+        }
+        
+        .amount-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #059669;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 8px 0;
+        }
+        
+        .amount-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #065f46;
+            margin: 0;
+        }
+        
+        .info-box {
+            background: #ffffff;
+            border-left: 4px solid #2563eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .info-box-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 8px 0;
+        }
+        
+        .info-box-value {
+            font-size: 16px;
+            color: #000000;
+            font-weight: 500;
+            margin: 0;
+        }
+        
+        /* Футер */
+        .footer {
+            background: #f9fafb;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .footer-text {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 0 0 12px 0;
+            line-height: 1.6;
+        }
+        
+        .footer-brand {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2563eb;
+            margin: 0 0 4px 0;
+        }
+        
+        .footer-tagline {
+            font-size: 12px;
+            color: #9ca3af;
+            margin: 0;
+        }
+        
+        .footer-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 20px 0;
+        }
+        
+        /* Адаптивность */
+        @media only screen and (max-width: 600px) {
+            .email-wrapper {
+                padding: 20px 10px;
+            }
+            
+            .email-container {
+                border-radius: 16px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .footer {
+                padding: 20px;
+            }
+            
+            .amount-value {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="email-container">
+            <!-- Шапка -->
+            <div class="header">
+                <div class="logo-container">
+                    <div class="logo-icon" style="font-size: 40px; line-height: 1; display: block; text-align: center;">💰</div>
+                </div>
+                <h1>Баланс успешно пополнен</h1>
+                <p class="subtitle">Компьютер.ок</p>
+            </div>
+            
+            <!-- Контент -->
+            <div class="content">
+                <p class="greeting">
+                    Здравствуйте, <strong>{{user_name}}</strong>!
+                </p>
+                
+                <p class="message">
+                    Мы рады сообщить, что ваш баланс успешно пополнен. Средства зачислены на ваш счет и готовы к использованию.
+                </p>
+                
+                <div class="amount-box">
+                    <p class="amount-label">Сумма пополнения</p>
+                    <p class="amount-value">{{amount}} ₽</p>
+                </div>
+                
+                <div class="success-box">
+                    <p class="info-box-label">Новый баланс</p>
+                    <p class="info-box-value" style="color: #000000 !important; font-size: 18px; font-weight: 600; margin: 0;">{{new_balance}} ₽</p>
+                </div>
+                
+                <div class="info-box">
+                    <p class="info-box-label">Дата и время</p>
+                    <p class="info-box-value" style="color: #000000 !important; font-size: 16px; font-weight: 500; margin: 0;">{{payment_time}}</p>
+                </div>
+                
+                <div class="info-box">
+                    <p class="info-box-label">ID транзакции</p>
+                    <p class="info-box-value" style="color: #000000 !important; font-size: 14px; font-weight: 500; margin: 0; font-family: monospace;">{{transaction_id}}</p>
+                </div>
+                
+                <p class="message">
+                    Спасибо за использование нашего сервиса! Теперь вы можете использовать средства для оплаты услуг на платформе Компьютер.ок.
+                </p>
+            </div>
+            
+            <!-- Футер -->
+            <div class="footer">
+                <p class="footer-brand">Компьютер.ок</p>
+                <p class="footer-tagline">Умный подбор комплектующих</p>
+                
+                <div class="footer-divider"></div>
+                
+                <p class="footer-text">
+                    С уважением,<br>
+                    Команда поддержки Компьютер.ок
+                </p>
+                
+                <p class="footer-text" style="font-size: 12px; color: #9ca3af; margin-top: 16px;">
+                    Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

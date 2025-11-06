@@ -39,6 +39,25 @@ services:
     networks:
       - oauth_network
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: oauth_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oauth_network
+
   backend:
     build:
       context: .
@@ -77,10 +96,15 @@ services:
       - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
       - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
       - YOOKASSA_TEST_MODE=${YOOKASSA_TEST_MODE}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     volumes:
       - .:/app
@@ -124,6 +148,32 @@ services:
       - oauth_network
     restart: unless-stopped
 
+  celery_workers:
+    build:
+      context: .
+      dockerfile: celery_workers/Dockerfile
+    container_name: oauth_celery_workers
+    env_file:
+      - .env
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - CELERY_BACKEND_URL=${CELERY_BACKEND_URL}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - oauth_network
+    restart: unless-stopped
+
 networks:
   oauth_network:
     driver: bridge
@@ -131,3 +181,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  rabbitmq_data:

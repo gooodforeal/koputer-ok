@@ -1,7 +1,7 @@
 """
 Сервис для авторизации пользователей
 """
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Optional
 import logging
 import httpx
@@ -20,6 +20,7 @@ from app.schemas.auth import (
 from app.auth import create_access_token
 from app.config import settings
 from app.services.auth_tokens import auth_token_storage
+from app.services.email_publisher import email_publisher
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +161,19 @@ class AuthService:
                 expires_delta=access_token_expires
             )
             
+            # Отправляем email при входе (если email указан)
+            if user.email:
+                try:
+                    login_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    await email_publisher.publish_login_email(
+                        email=user.email,
+                        user_name=user.name,
+                        login_time=login_time
+                    )
+                except Exception as e:
+                    # Логируем ошибку, но не прерываем процесс входа
+                    logger.error(f"Ошибка при отправке email при входе: {str(e)}")
+            
             # Перенаправляем на фронтенд с токеном
             frontend_url = f"{settings.frontend_url}/auth/callback?token={jwt_token}"
             return RedirectResponse(url=frontend_url)
@@ -274,6 +288,19 @@ class AuthService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to save JWT token"
             )
+        
+        # Отправляем email при входе (если email указан)
+        if db_user.email:
+            try:
+                login_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                await email_publisher.publish_login_email(
+                    email=db_user.email,
+                    user_name=db_user.name,
+                    login_time=login_time
+                )
+            except Exception as e:
+                # Логируем ошибку, но не прерываем процесс входа
+                logger.error(f"Ошибка при отправке email при входе: {str(e)}")
         
         return TelegramAuthorizeResponse(
             status="success",

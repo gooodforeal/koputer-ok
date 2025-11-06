@@ -119,7 +119,8 @@ def get_transaction_repository(db: AsyncSession = Depends(get_db_session)) -> Tr
 
 def get_payment_service(
     balance_repo: BalanceRepository = Depends(get_balance_repository),
-    transaction_repo: TransactionRepository = Depends(get_transaction_repository)
+    transaction_repo: TransactionRepository = Depends(get_transaction_repository),
+    user_repo: UserRepository = Depends(get_user_repository)
 ) -> PaymentService:
     """
     Получить экземпляр PaymentService
@@ -127,11 +128,12 @@ def get_payment_service(
     Args:
         balance_repo: Репозиторий балансов
         transaction_repo: Репозиторий транзакций
+        user_repo: Репозиторий пользователей
         
     Returns:
         PaymentService: Экземпляр сервиса платежей
     """
-    return PaymentService(balance_repo, transaction_repo)
+    return PaymentService(balance_repo, transaction_repo, user_repo)
 
 
 def get_auth_service(

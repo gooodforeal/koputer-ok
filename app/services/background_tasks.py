@@ -42,13 +42,15 @@ async def check_pending_payments_task():
     while True:
         try:
             from app.database import AsyncSessionLocal
-            from app.repositories import TransactionRepository, BalanceRepository
+            from app.repositories import TransactionRepository, BalanceRepository, UserRepository
             from app.services.yookassa_service import YooKassaService
+            from app.services.email_publisher import email_publisher
             from app.models.balance import TransactionStatus
 
             async with AsyncSessionLocal() as db:
                 transaction_repo = TransactionRepository(db)
                 balance_repo = BalanceRepository(db)
+                user_repo = UserRepository(db)
                 
                 # Получаем все транзакции со статусом PENDING, у которых есть payment_id
                 pending_transactions = await transaction_repo.get_pending_payment_transactions()
@@ -106,11 +108,32 @@ async def check_pending_payments_task():
                                     transaction,
                                     status=TransactionStatus.COMPLETED
                                 )
+                                
+                                # Получаем обновленный баланс
+                                balance = await balance_repo.get_by_user_id(transaction.user_id)
+                                
                                 logger.info(
                                     f"Платеж {transaction.payment_id} завершен. "
                                     f"Транзакция {transaction.id} обновлена на COMPLETED. "
                                     f"Баланс пользователя {transaction.user_id} пополнен на {transaction.amount}"
                                 )
+                                
+                                # Отправляем email о пополнении баланса (если email указан)
+                                try:
+                                    user = await user_repo.get_by_id(transaction.user_id)
+                                    if user and user.email and balance:
+                                        payment_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                        await email_publisher.publish_balance_email(
+                                            email=user.email,
+                                            user_name=user.name,
+                                            amount=str(transaction.amount),
+                                            new_balance=str(balance.balance),
+                                            payment_time=payment_time,
+                                            transaction_id=str(transaction.id)
+                                        )
+                                except Exception as e:
+                                    # Логируем ошибку, но не прерываем процесс
+                                    logger.error(f"Ошибка при отправке email о пополнении баланса: {str(e)}")
                             elif cancelled or yookassa_status in ["canceled", "cancelled"]:
                                 # Платеж отменен
                                 await transaction_repo.update(

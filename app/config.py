@@ -50,6 +50,23 @@ class Settings(BaseSettings):
     yookassa_secret_key: str
     yookassa_test_mode: bool = False  # Режим тестирования
     
+    # RabbitMQ
+    rabbitmq_url: Optional[str] = None
+    rabbitmq_user: Optional[str] = None
+    rabbitmq_password: Optional[str] = None
+    rabbitmq_host: Optional[str] = None  # Используется в celery workers
+    rabbitmq_port: Optional[int] = None  # Используется в celery workers
+    
+    # Celery (опционально, используется только в celery workers)
+    celery_backend_url: Optional[str] = None
+    
+    # SMTP для отправки email
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from_email: Optional[str] = None
+    
     class Config:
         env_file = ".env"
 
