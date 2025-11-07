@@ -3,6 +3,7 @@
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.core.lifespan import lifespan
 from app.routers import auth, users, chat, feedback, builds, components, balance
@@ -33,6 +34,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Настройка Prometheus middleware
+    instrumentator = Instrumentator()
+    instrumentator.instrument(app).expose(app, endpoint="/metrics")
 
     # Подключение роутеров с общим префиксом /api
     app.include_router(auth.router, prefix="/api")
