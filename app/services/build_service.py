@@ -18,8 +18,8 @@ from app.schemas.build import (
     BuildComponentsResponse
 )
 from app.schemas.common import MessageResponse
-from app.services.redis_service import redis_service
-from app.services.pdf_generator import create_build_pdf
+from app.services.redis_service import RedisService
+from app.services.pdf_generator import PDFGenerator
 from app.utils.transliteration import safe_filename
 import logging
 
@@ -29,8 +29,15 @@ logger = logging.getLogger(__name__)
 class BuildService:
     """Сервис для работы со сборками"""
     
-    def __init__(self, build_repo: BuildRepository):
+    def __init__(
+        self, 
+        build_repo: BuildRepository, 
+        redis_service: RedisService,
+        pdf_generator: PDFGenerator
+    ):
         self.build_repo = build_repo
+        self.redis_service = redis_service
+        self.pdf_generator = pdf_generator
     
     async def create_build(
         self,
@@ -188,7 +195,7 @@ class BuildService:
             build_id=build_id,
             user_id=current_user.id if current_user else None,
             client_ip=client_ip,
-            redis_service=redis_service
+            redis_service=self.redis_service
         )
         
         if not build:
@@ -584,7 +591,7 @@ class BuildService:
         try:
             # Создаем PDF в памяти
             pdf_buffer = io.BytesIO()
-            await create_build_pdf(build, pdf_buffer)
+            await self.pdf_generator.create_build_pdf(build, pdf_buffer)
             pdf_buffer.seek(0)
             
             # Создаем безопасное имя файла с транслитерацией

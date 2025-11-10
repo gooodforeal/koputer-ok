@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Background
 from typing import List
 from app.dependencies import (
     require_admin_or_super_admin,
-    get_component_repository
+    get_component_repository,
+    get_component_parser_service
 )
 from app.repositories.component_repository import ComponentRepository
 from app.schemas.component import ComponentResponse, ParseStatusResponse, ParseStartResponse
 from app.models.user import User
-from app.services.component_parser import component_parser_service
+from app.services.component_parser import ComponentParserService
 
 router = APIRouter(prefix="/components", tags=["components"])
 
@@ -17,7 +18,8 @@ async def start_parsing(
     background_tasks: BackgroundTasks,
     clear_existing: bool = Query(True, description="Очистить существующие данные перед парсингом"),
     current_user: User = Depends(require_admin_or_super_admin),
-    component_repo: ComponentRepository = Depends(get_component_repository)
+    component_repo: ComponentRepository = Depends(get_component_repository),
+    component_parser_service: ComponentParserService = Depends(get_component_parser_service)
 ):
     """
     Запустить парсинг компонентов в фоновом режиме (только для администраторов)
@@ -30,6 +32,7 @@ async def start_parsing(
         clear_existing: Очистить существующие данные перед парсингом
         current_user: Текущий пользователь
         component_repo: Репозиторий компонентов
+        component_parser_service: Сервис парсинга компонентов
     """
     # Проверяем статус
     parse_status = await component_parser_service.get_status()
@@ -56,13 +59,15 @@ async def start_parsing(
 
 @router.get("/parse/status", response_model=ParseStatusResponse)
 async def get_parse_status(
-    current_user: User = Depends(require_admin_or_super_admin)
+    current_user: User = Depends(require_admin_or_super_admin),
+    component_parser_service: ComponentParserService = Depends(get_component_parser_service)
 ):
     """
     Получить статус парсинга (только для администраторов)
     
     Args:
         current_user: Текущий пользователь
+        component_parser_service: Сервис парсинга компонентов
     """
     status_data = await component_parser_service.get_status()
     return ParseStatusResponse(**status_data)
@@ -70,13 +75,15 @@ async def get_parse_status(
 
 @router.post("/parse/stop")
 async def stop_parsing(
-    current_user: User = Depends(require_admin_or_super_admin)
+    current_user: User = Depends(require_admin_or_super_admin),
+    component_parser_service: ComponentParserService = Depends(get_component_parser_service)
 ):
     """
     Остановить запущенный парсинг (только для администраторов)
     
     Args:
         current_user: Текущий пользователь
+        component_parser_service: Сервис парсинга компонентов
     """
     stopped = await component_parser_service.stop_parsing()
     if not stopped:

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query, status
 from typing import Optional
 from app.dependencies.auth import get_current_user
-from app.dependencies.repositories import get_feedback_service, get_user_repository
+from app.dependencies import get_feedback_service
+from app.dependencies.repositories import get_user_repository
 from app.dependencies.roles import require_role
 from app.models.user import User, UserRole
 from app.models.feedback import FeedbackStatus, FeedbackType

@@ -6,10 +6,11 @@ from decimal import Decimal
 from fastapi import HTTPException, status
 from app.repositories import BalanceRepository, TransactionRepository, UserRepository
 from app.services.yookassa_service import YooKassaService
-from app.services.email_publisher import email_publisher
+from app.services.email_publisher import EmailPublisher
 from app.models.balance import TransactionType, TransactionStatus
 from app.schemas.balance import PaymentCreate, PaymentResponse
 from datetime import datetime
+from typing import Type
 import logging
 
 
@@ -23,11 +24,15 @@ class PaymentService:
         self,
         balance_repo: BalanceRepository,
         transaction_repo: TransactionRepository,
-        user_repo: Optional[UserRepository] = None
+        user_repo: Optional[UserRepository] = None,
+        email_publisher: Optional[EmailPublisher] = None,
+        yookassa_service: Type[YooKassaService] = YooKassaService
     ):
         self.balance_repo = balance_repo
         self.transaction_repo = transaction_repo
         self.user_repo = user_repo
+        self.email_publisher = email_publisher
+        self.yookassa_service = yookassa_service
     
     async def create_payment(
         self,
@@ -60,7 +65,7 @@ class PaymentService:
         
         # Создаем платеж в Юкассе
         try:
-            payment_info = await YooKassaService.create_payment(
+            payment_info = await self.yookassa_service.create_payment(
                 amount=payment_data.amount,
                 user_id=user_id,
                 description=payment_data.description or "Пополнение баланса",
@@ -108,7 +113,7 @@ class PaymentService:
         try:
             
             # Парсим вебхук
-            parsed_data = YooKassaService.parse_webhook(webhook_data)
+            parsed_data = self.yookassa_service.parse_webhook(webhook_data)
             payment_id = parsed_data["payment_id"]
             event = parsed_data.get("event")
             
@@ -171,7 +176,7 @@ class PaymentService:
         
         # Получаем статус из Юкассы
         try:
-            payment_status = await YooKassaService.get_payment_status(payment_id)
+            payment_status = await self.yookassa_service.get_payment_status(payment_id)
             paid = payment_status["paid"]
             cancelled = payment_status["cancelled"]
             yookassa_status = payment_status["status"]
@@ -243,12 +248,12 @@ class PaymentService:
         )
         
         # Отправляем email о пополнении баланса (если email указан)
-        if self.user_repo:
+        if self.user_repo and self.email_publisher:
             try:
                 user = await self.user_repo.get_by_id(transaction.user_id)
                 if user and user.email:
                     payment_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    await email_publisher.publish_balance_email(
+                    await self.email_publisher.publish_balance_email(
                         email=user.email,
                         user_name=user.name,
                         amount=str(transaction.amount),

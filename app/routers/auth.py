@@ -8,8 +8,7 @@ from app.schemas.auth import (
 )
 from app.schemas.user import UserResponse
 from app.models.user import User
-from app.dependencies import get_current_user
-from app.dependencies.repositories import get_auth_service
+from app.dependencies import get_current_user, get_auth_service
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])

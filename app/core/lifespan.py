@@ -21,7 +21,8 @@ async def lifespan(app: FastAPI):
     
     # Инициализация Redis
     try:
-        from app.services.redis_service import redis_service
+        from app.dependencies.services import get_redis_service
+        redis_service = get_redis_service()
         await redis_service.get_connection()
         logger.info("Redis соединение инициализировано")
     except Exception as e:
@@ -30,7 +31,8 @@ async def lifespan(app: FastAPI):
     
     # Инициализация RabbitMQ
     try:
-        from app.services.rabbitmq_service import rabbitmq_service
+        from app.dependencies.services import get_rabbitmq_service
+        rabbitmq_service = get_rabbitmq_service()
         await rabbitmq_service.connect()
         logger.info("RabbitMQ соединение инициализировано")
     except Exception as e:
@@ -67,7 +69,8 @@ async def lifespan(app: FastAPI):
     
     # Закрытие Redis соединения
     try:
-        from app.services.redis_service import redis_service
+        from app.dependencies.services import get_redis_service
+        redis_service = get_redis_service()
         await redis_service.close()
         logger.info("Redis соединение закрыто")
     except Exception as e:
@@ -75,7 +78,8 @@ async def lifespan(app: FastAPI):
     
     # Закрытие RabbitMQ соединения
     try:
-        from app.services.rabbitmq_service import rabbitmq_service
+        from app.dependencies.services import get_rabbitmq_service
+        rabbitmq_service = get_rabbitmq_service()
         await rabbitmq_service.disconnect()
         logger.info("RabbitMQ соединение закрыто")
     except Exception as e:

@@ -7,7 +7,8 @@ from app.auth import get_current_user_from_token
 from app.models.user import User
 from .repositories import get_user_repository
 from app.repositories import UserRepository
-from app.services.redis_service import redis_service
+from .services import get_redis_service
+from app.services.redis_service import RedisService
 from typing import Optional
 import asyncio
 from datetime import datetime, timedelta
@@ -28,6 +29,7 @@ async def clear_user_cache(user_email: str = None, telegram_id: str = None):
         telegram_id: Telegram ID пользователя для очистки конкретного кэша.
                    Если оба None, очищает весь кэш.
     """
+    redis_service = get_redis_service()
     if user_email:
         await redis_service.delete(f"user_cache:{user_email}")
     if telegram_id:
@@ -42,6 +44,7 @@ async def clear_user_cache(user_email: str = None, telegram_id: str = None):
 async def cleanup_expired_cache():
     """Очистить устаревшие записи из кэша (Redis автоматически удаляет истекшие ключи)"""
     # Redis автоматически удаляет истекшие ключи, поэтому просто возвращаем количество активных
+    redis_service = get_redis_service()
     active_count = await redis_service.cleanup_expired_keys("user_cache:*")
     return active_count
 
@@ -52,7 +55,8 @@ __all__ = ["get_current_user", "get_optional_user", "security", "clear_user_cach
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    user_repo: UserRepository = Depends(get_user_repository)
+    user_repo: UserRepository = Depends(get_user_repository),
+    redis_service: RedisService = Depends(get_redis_service)
 ) -> User:
     """
     Получает текущего пользователя из JWT токена с кэшированием
@@ -156,7 +160,8 @@ async def get_current_user(
 
 async def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
-    user_repo: UserRepository = Depends(get_user_repository)
+    user_repo: UserRepository = Depends(get_user_repository),
+    redis_service: RedisService = Depends(get_redis_service)
 ) -> Optional[User]:
     """
     Получает текущего пользователя из JWT токена (опционально)

@@ -8,24 +8,12 @@ from typing import AsyncGenerator, Generator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch, MagicMock as MockModule
+from unittest.mock import AsyncMock, MagicMock, MagicMock as MockModule
 
 # Мокируем зависимости ДО импорта приложения, чтобы избежать ошибок импорта
 # если они не установлены
 def _create_mock_modules():
     """Создает моки для модулей, которые могут отсутствовать"""
-    
-    # Мок для pdf_generator
-    pdf_module = MockModule()
-    async def mock_create_build_pdf(build, buffer):
-        """Мок функция для генерации PDF"""
-        buffer.write(b"%PDF-1.4\n")
-        buffer.write(b"1 0 obj\n<< /Type /Catalog >>\nendobj\n")
-        buffer.write(b"xref\n0 2\ntrailer\n<< /Size 2 >>\n")
-        buffer.write(b"startxref\n25\n%%EOF\n")
-        buffer.seek(0)
-    pdf_module.create_build_pdf = mock_create_build_pdf
-    sys.modules['app.services.pdf_generator'] = pdf_module
     
     # Моки для парсера компонентов (не нужны для тестов builds)
     component_parser_module = MockModule()
@@ -53,6 +41,13 @@ from app.models.build import Build
 from app.models.feedback import Feedback, FeedbackType, FeedbackStatus
 from app.dependencies.auth import get_current_user, get_optional_user
 from app.services.redis_service import RedisService
+from app.services.rabbitmq_service import RabbitMQService
+from app.services.pdf_generator import PDFGenerator
+from app.dependencies.services import (
+    get_redis_service,
+    get_rabbitmq_service,
+    get_pdf_generator
+)
 
 
 # Тестовая база данных SQLite в памяти
@@ -298,7 +293,6 @@ def mock_redis_service():
 @pytest.fixture(scope="function")
 def mock_rabbitmq_service():
     """Создает мок для RabbitMQ сервиса"""
-    from app.services.rabbitmq_service import RabbitMQService
     mock_rabbitmq = AsyncMock(spec=RabbitMQService)
     mock_rabbitmq.connect = AsyncMock(return_value=None)
     mock_rabbitmq.disconnect = AsyncMock(return_value=None)
@@ -317,21 +311,50 @@ def mock_rabbitmq_service():
     return mock_rabbitmq
 
 
-def _create_test_app(override_get_db):
+@pytest.fixture(scope="function")
+def mock_pdf_generator():
+    """Создает мок для PDFGenerator"""
+    mock_pdf = AsyncMock(spec=PDFGenerator)
+    async def mock_create_build_pdf(build, buffer):
+        """Мок метод для генерации PDF"""
+        buffer.write(b"%PDF-1.4\n")
+        buffer.write(b"1 0 obj\n<< /Type /Catalog >>\nendobj\n")
+        buffer.write(b"xref\n0 2\ntrailer\n<< /Size 2 >>\n")
+        buffer.write(b"startxref\n25\n%%EOF\n")
+        buffer.seek(0)
+    mock_pdf.create_build_pdf = mock_create_build_pdf
+    return mock_pdf
+
+
+def _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator):
     """Вспомогательная функция для создания тестового приложения"""
     app = create_app()
     
     # Переопределяем зависимость базы данных
     app.dependency_overrides[get_db] = override_get_db
     
+    # Переопределяем зависимости сервисов
+    def _get_redis_service():
+        return mock_redis_service
+    
+    def _get_rabbitmq_service():
+        return mock_rabbitmq_service
+    
+    def _get_pdf_generator():
+        return mock_pdf_generator
+    
+    app.dependency_overrides[get_redis_service] = _get_redis_service
+    app.dependency_overrides[get_rabbitmq_service] = _get_rabbitmq_service
+    app.dependency_overrides[get_pdf_generator] = _get_pdf_generator
+    
     return app
 
 
 @pytest.fixture(scope="function")
-def client(override_get_db, mock_redis_service, mock_rabbitmq_service, test_user):
+def client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_user):
     """Создает тестовый клиент FastAPI с авторизованным пользователем"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db)
+    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
     
     # Переопределяем зависимость авторизации
     async def _get_current_user():
@@ -343,40 +366,34 @@ def client(override_get_db, mock_redis_service, mock_rabbitmq_service, test_user
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
-    with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
-            with TestClient(app) as test_client:
-                yield test_client
+    with TestClient(app) as test_client:
+        yield test_client
     
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def unauthenticated_client(override_get_db, mock_redis_service, mock_rabbitmq_service):
+def unauthenticated_client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator):
     """Создает неавторизованный тестовый клиент"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db)
+    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
     
     async def _get_optional_user():
         return None
     
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
-    with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
-            with TestClient(app) as test_client:
-                yield test_client
+    with TestClient(app) as test_client:
+        yield test_client
     
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def client_user2(override_get_db, mock_redis_service, mock_rabbitmq_service, test_user2):
+def client_user2(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_user2):
     """Создает тестовый клиент для второго пользователя"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db)
+    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
     
     async def _get_current_user():
         return test_user2
@@ -387,11 +404,8 @@ def client_user2(override_get_db, mock_redis_service, mock_rabbitmq_service, tes
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
-    with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
-            with TestClient(app) as test_client:
-                yield test_client
+    with TestClient(app) as test_client:
+        yield test_client
     
     app.dependency_overrides.clear()
 
@@ -414,10 +428,10 @@ async def test_admin(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture(scope="function")
-def admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, test_admin):
+def admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_admin):
     """Создает тестовый клиент для администратора"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db)
+    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
     
     async def _get_current_user():
         return test_admin
@@ -428,11 +442,8 @@ def admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, tes
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
-    with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
-            with TestClient(app) as test_client:
-                yield test_client
+    with TestClient(app) as test_client:
+        yield test_client
     
     app.dependency_overrides.clear()
 
@@ -455,10 +466,10 @@ async def test_super_admin(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture(scope="function")
-def super_admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, test_super_admin):
+def super_admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_super_admin):
     """Создает тестовый клиент для супер-администратора"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db)
+    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
     
     async def _get_current_user():
         return test_super_admin
@@ -469,11 +480,8 @@ def super_admin_client(override_get_db, mock_redis_service, mock_rabbitmq_servic
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
-    with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
-            with TestClient(app) as test_client:
-                yield test_client
+    with TestClient(app) as test_client:
+        yield test_client
     
     app.dependency_overrides.clear()
 

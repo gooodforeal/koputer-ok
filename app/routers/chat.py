@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import List
 from app.dependencies.auth import get_current_user
-from app.dependencies.repositories import get_chat_service
+from app.dependencies import get_chat_service
 from app.dependencies.roles import require_role
 from app.models.user import User, UserRole
 from app.services.chat_service import ChatService

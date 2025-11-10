@@ -3,8 +3,9 @@
 """
 import pytest
 from fastapi import status
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from app.models.component import Component, ComponentCategory
+from app.dependencies.services import get_component_parser_service
 
 
 class TestGetComponents:
@@ -231,11 +232,15 @@ class TestParseComponents:
     @pytest.mark.asyncio
     async def test_start_parsing_success(self, admin_client):
         """Тест успешного запуска парсинга"""
-        # Мокируем component_parser_service в роутере
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.get_status = AsyncMock(return_value={"is_running": False})
-            mock_service.start_parsing = AsyncMock()
-            
+        # Мокируем component_parser_service
+        mock_service = AsyncMock()
+        mock_service.get_status = AsyncMock(return_value={"is_running": False})
+        mock_service.start_parsing = AsyncMock()
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.post("/api/components/parse")
             
             assert response.status_code == status.HTTP_200_OK
@@ -243,30 +248,47 @@ class TestParseComponents:
             assert "message" in data
             assert "status" in data
             assert data["status"] == "started"
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_start_parsing_already_running(self, admin_client):
         """Тест запуска парсинга, когда он уже запущен"""
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.get_status = AsyncMock(return_value={"is_running": True})
-            
+        mock_service = AsyncMock()
+        mock_service.get_status = AsyncMock(return_value={"is_running": True})
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.post("/api/components/parse")
             
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "уже запущен" in response.json()["detail"].lower()
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_start_parsing_with_clear_existing(self, admin_client):
         """Тест запуска парсинга с очисткой существующих данных"""
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.get_status = AsyncMock(return_value={"is_running": False})
-            mock_service.start_parsing = AsyncMock()
-            
+        mock_service = AsyncMock()
+        mock_service.get_status = AsyncMock(return_value={"is_running": False})
+        mock_service.start_parsing = AsyncMock()
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.post("/api/components/parse?clear_existing=true")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["status"] == "started"
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_start_parsing_forbidden(self, client):
@@ -289,16 +311,20 @@ class TestGetParseStatus:
     @pytest.mark.asyncio
     async def test_get_parse_status_not_running(self, admin_client):
         """Тест получения статуса, когда парсинг не запущен"""
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.get_status = AsyncMock(return_value={
-                "is_running": False,
-                "current_category": None,
-                "processed_categories": 0,
-                "total_categories": 0,
-                "processed_products": 0,
-                "errors": []
-            })
-            
+        mock_service = AsyncMock()
+        mock_service.get_status = AsyncMock(return_value={
+            "is_running": False,
+            "current_category": None,
+            "processed_categories": 0,
+            "total_categories": 0,
+            "processed_products": 0,
+            "errors": []
+        })
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.get("/api/components/parse/status")
             
             assert response.status_code == status.HTTP_200_OK
@@ -308,20 +334,27 @@ class TestGetParseStatus:
             assert "total_categories" in data
             assert "processed_products" in data
             assert "errors" in data
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_get_parse_status_running(self, admin_client):
         """Тест получения статуса, когда парсинг запущен"""
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.get_status = AsyncMock(return_value={
-                "is_running": True,
-                "current_category": "Процессоры",
-                "processed_categories": 2,
-                "total_categories": 9,
-                "processed_products": 150,
-                "errors": []
-            })
-            
+        mock_service = AsyncMock()
+        mock_service.get_status = AsyncMock(return_value={
+            "is_running": True,
+            "current_category": "Процессоры",
+            "processed_categories": 2,
+            "total_categories": 9,
+            "processed_products": 150,
+            "errors": []
+        })
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.get("/api/components/parse/status")
             
             assert response.status_code == status.HTTP_200_OK
@@ -331,25 +364,35 @@ class TestGetParseStatus:
             assert data["processed_categories"] == 2
             assert data["total_categories"] == 9
             assert data["processed_products"] == 150
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_get_parse_status_with_errors(self, admin_client):
         """Тест получения статуса с ошибками"""
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.get_status = AsyncMock(return_value={
-                "is_running": False,
-                "current_category": None,
-                "processed_categories": 5,
-                "total_categories": 9,
-                "processed_products": 200,
-                "errors": ["Ошибка при парсинге категории Видеокарты"]
-            })
-            
+        mock_service = AsyncMock()
+        mock_service.get_status = AsyncMock(return_value={
+            "is_running": False,
+            "current_category": None,
+            "processed_categories": 5,
+            "total_categories": 9,
+            "processed_products": 200,
+            "errors": ["Ошибка при парсинге категории Видеокарты"]
+        })
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.get("/api/components/parse/status")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert len(data["errors"]) > 0
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_get_parse_status_forbidden(self, client):
@@ -372,9 +415,13 @@ class TestStopParsing:
     @pytest.mark.asyncio
     async def test_stop_parsing_success(self, admin_client):
         """Тест успешной остановки парсинга"""
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.stop_parsing = AsyncMock(return_value=True)
-            
+        mock_service = AsyncMock()
+        mock_service.stop_parsing = AsyncMock(return_value=True)
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.post("/api/components/parse/stop")
             
             assert response.status_code == status.HTTP_200_OK
@@ -382,17 +429,27 @@ class TestStopParsing:
             assert "message" in data
             assert "status" in data
             assert data["status"] == "stopping"
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_stop_parsing_not_running(self, admin_client):
         """Тест остановки парсинга, когда он не запущен"""
-        with patch('app.routers.components.component_parser_service') as mock_service:
-            mock_service.stop_parsing = AsyncMock(return_value=False)
-            
+        mock_service = AsyncMock()
+        mock_service.stop_parsing = AsyncMock(return_value=False)
+        
+        # Переопределяем dependency
+        admin_client.app.dependency_overrides[get_component_parser_service] = lambda: mock_service
+        
+        try:
             response = admin_client.post("/api/components/parse/stop")
             
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "не запущен" in response.json()["detail"].lower()
+        finally:
+            # Очищаем переопределение
+            admin_client.app.dependency_overrides.pop(get_component_parser_service, None)
     
     @pytest.mark.asyncio
     async def test_stop_parsing_forbidden(self, client):

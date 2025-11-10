@@ -5,7 +5,7 @@ import logging
 import uuid
 from typing import Optional
 from datetime import datetime
-from app.services.rabbitmq_service import rabbitmq_service
+from app.services.rabbitmq_service import RabbitMQService
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +13,16 @@ logger = logging.getLogger(__name__)
 class EmailPublisher:
     """Класс для публикации задач отправки email в RabbitMQ"""
     
+    def __init__(self, rabbitmq_service: RabbitMQService):
+        self.rabbitmq_service = rabbitmq_service
+    
     async def connect(self):
         """Подключение к RabbitMQ"""
-        await rabbitmq_service.connect()
+        await self.rabbitmq_service.connect()
     
     async def disconnect(self):
         """Отключение от RabbitMQ"""
-        await rabbitmq_service.disconnect()
+        await self.rabbitmq_service.disconnect()
     
     async def publish_login_email(
         self,
@@ -42,7 +45,7 @@ class EmailPublisher:
         try:
             # Настраиваем очередь и exchange для Celery
             queue_name = "celery_login"
-            exchange, queue = await rabbitmq_service.setup_celery_queue(queue_name)
+            exchange, queue = await self.rabbitmq_service.setup_celery_queue(queue_name)
             
             # Формируем сообщение в формате Celery (JSON сериализация)
             task_id = str(uuid.uuid4())
@@ -58,7 +61,7 @@ class EmailPublisher:
             }
             
             # Публикуем сообщение через универсальный сервис
-            await rabbitmq_service.publish_json(
+            await self.rabbitmq_service.publish_json(
                 exchange=exchange,
                 routing_key=queue_name,
                 data=task_message,
@@ -71,8 +74,8 @@ class EmailPublisher:
             logger.error(f"Ошибка при публикации задачи отправки email: {str(e)}")
             # Пытаемся переподключиться
             try:
-                await rabbitmq_service.disconnect()
-                await rabbitmq_service.connect()
+                await self.rabbitmq_service.disconnect()
+                await self.rabbitmq_service.connect()
             except:
                 pass
     
@@ -103,7 +106,7 @@ class EmailPublisher:
         try:
             # Настраиваем очередь и exchange для Celery
             queue_name = "celery_balance"
-            exchange, queue = await rabbitmq_service.setup_celery_queue(queue_name)
+            exchange, queue = await self.rabbitmq_service.setup_celery_queue(queue_name)
             
             # Формируем сообщение в формате Celery (JSON сериализация)
             task_id = str(uuid.uuid4())
@@ -126,7 +129,7 @@ class EmailPublisher:
             }
             
             # Публикуем сообщение через универсальный сервис
-            await rabbitmq_service.publish_json(
+            await self.rabbitmq_service.publish_json(
                 exchange=exchange,
                 routing_key=queue_name,
                 data=task_message,
@@ -139,12 +142,8 @@ class EmailPublisher:
             logger.error(f"Ошибка при публикации задачи отправки email о пополнении: {str(e)}")
             # Пытаемся переподключиться
             try:
-                await rabbitmq_service.disconnect()
-                await rabbitmq_service.connect()
+                await self.rabbitmq_service.disconnect()
+                await self.rabbitmq_service.connect()
             except:
                 pass
-
-
-# Глобальный экземпляр publisher
-email_publisher = EmailPublisher()
 

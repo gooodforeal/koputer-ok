@@ -1,10 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Request
 from typing import Optional
-from app.dependencies import get_current_user
-from app.dependencies.repositories import (
-    get_balance_service,
-    get_payment_service
-)
+from app.dependencies import get_current_user, get_balance_service, get_payment_service
 from app.services.balance_service import BalanceService
 from app.services.payment_service import PaymentService
 from app.schemas.balance import (

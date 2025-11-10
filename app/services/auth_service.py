@@ -19,8 +19,8 @@ from app.schemas.auth import (
 )
 from app.auth import create_access_token
 from app.config import settings
-from app.services.auth_tokens import auth_token_storage
-from app.services.email_publisher import email_publisher
+from app.services.auth_tokens import AuthTokenStorage
+from app.services.email_publisher import EmailPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +28,15 @@ logger = logging.getLogger(__name__)
 class AuthService:
     """Сервис для авторизации пользователей"""
     
-    def __init__(self, user_repo: UserRepository):
+    def __init__(
+        self,
+        user_repo: UserRepository,
+        auth_token_storage: AuthTokenStorage,
+        email_publisher: EmailPublisher
+    ):
         self.user_repo = user_repo
+        self.auth_token_storage = auth_token_storage
+        self.email_publisher = email_publisher
     
     async def _exchange_code_for_token(self, code: str) -> str:
         """
@@ -165,7 +172,7 @@ class AuthService:
             if user.email:
                 try:
                     login_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    await email_publisher.publish_login_email(
+                    await self.email_publisher.publish_login_email(
                         email=user.email,
                         user_name=user.name,
                         login_time=login_time
@@ -192,7 +199,7 @@ class AuthService:
             TelegramAuthInitResponse с данными для авторизации
         """
         # Создаем временный токен авторизации (действует 5 минут)
-        auth_token = await auth_token_storage.create_token(expires_in=300)
+        auth_token = await self.auth_token_storage.create_token(expires_in=300)
         
         # Формируем deep link на бота с токеном
         bot_url = f"https://t.me/{settings.telegram_bot_username}?start={auth_token}"
@@ -221,7 +228,7 @@ class AuthService:
         logger.info(f"Обработка авторизации через Telegram для пользователя {request.telegram_id} с токеном {request.auth_token[:10]}...")
         
         # Проверяем и получаем данные токена
-        token_data = await auth_token_storage.get_token_data(request.auth_token)
+        token_data = await self.auth_token_storage.get_token_data(request.auth_token)
         
         if not token_data:
             logger.warning(f"Токен {request.auth_token[:10]}... не найден или истек")
@@ -239,7 +246,7 @@ class AuthService:
             )
         
         # Связываем токен с пользователем Telegram
-        success = await auth_token_storage.link_telegram_user(
+        success = await self.auth_token_storage.link_telegram_user(
             token=request.auth_token,
             telegram_id=int(request.telegram_id),
             username=request.username,
@@ -279,7 +286,7 @@ class AuthService:
         )
         
         # Сохраняем JWT токен в хранилище
-        token_updated = await auth_token_storage.update_token_data(request.auth_token, jwt_token=jwt_token)
+        token_updated = await self.auth_token_storage.update_token_data(request.auth_token, jwt_token=jwt_token)
         logger.info(f"JWT токен сохранен для токена {request.auth_token[:10]}...: {token_updated}")
         
         if not token_updated:
@@ -293,7 +300,7 @@ class AuthService:
         if db_user.email:
             try:
                 login_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                await email_publisher.publish_login_email(
+                await self.email_publisher.publish_login_email(
                     email=db_user.email,
                     user_name=db_user.name,
                     login_time=login_time
@@ -319,7 +326,7 @@ class AuthService:
             TelegramAuthCheckResponse с результатом проверки
         """
         logger.debug(f"Проверка токена {auth_token[:10]}...")
-        token_data = await auth_token_storage.get_token_data(auth_token)
+        token_data = await self.auth_token_storage.get_token_data(auth_token)
         
         if not token_data:
             logger.warning(f"Токен {auth_token[:10]}... не найден или истек")
@@ -340,7 +347,7 @@ class AuthService:
             jwt_token = token_data.get("jwt_token")
             if jwt_token:
                 logger.info(f"Возвращаем JWT токен для {auth_token[:10]}...")
-                await auth_token_storage.invalidate_token(auth_token)
+                await self.auth_token_storage.invalidate_token(auth_token)
                 return TelegramAuthCheckResponse(
                     status="completed",
                     access_token=jwt_token,

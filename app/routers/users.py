@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from typing import Optional
-from app.dependencies import get_current_user, require_super_admin
-from app.dependencies.repositories import get_user_service
+from app.dependencies import get_current_user, require_super_admin, get_user_service
 from app.services.user_service import UserService
 from app.schemas.user import UserResponse, UserStats, UserUpdate, UserSearchResponse
 from app.models.user import User, UserRole

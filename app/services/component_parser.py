@@ -8,7 +8,7 @@ from typing import Dict, Optional
 from app.services.shop_parser import ShopParser, ComponentsCategory
 from app.models.component import ComponentCategory
 from app.repositories.component_repository import ComponentRepository
-from app.services.redis_service import redis_service
+from app.services.redis_service import RedisService
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from app.config import settings
 
@@ -34,9 +34,10 @@ class ComponentParserService:
     Парсинг выполняется асинхронно с использованием aiohttp и BeautifulSoup.
     """
     
-    def __init__(self):
+    def __init__(self, redis_service: RedisService, shop_parser: ShopParser):
+        self.redis_service = redis_service
         self._parsing_task: Optional[asyncio.Task] = None
-        self._parser: Optional[ShopParser] = None
+        self._parser: Optional[ShopParser] = shop_parser
     
     async def start_parsing(self, component_repo: ComponentRepository, clear_existing: bool = True) -> None:
         """
@@ -71,7 +72,7 @@ class ComponentParserService:
         
         try:
             # Инициализируем статус
-            await redis_service.set(PARSE_STATUS_KEY, {
+            await self.redis_service.set(PARSE_STATUS_KEY, {
                 "is_running": True,
                 "current_category": None,
                 "processed_categories": 0,
@@ -80,7 +81,7 @@ class ComponentParserService:
                 "errors": []
             })
             # Устанавливаем timestamp начала парсинга
-            await redis_service.set(PARSE_STATUS_TIMESTAMP_KEY, asyncio.get_event_loop().time())
+            await self.redis_service.set(PARSE_STATUS_TIMESTAMP_KEY, asyncio.get_event_loop().time())
             
             if clear_existing:
                 logger.info("Очищаем существующие компоненты")
@@ -93,19 +94,18 @@ class ComponentParserService:
             async_session = async_sessionmaker(engine, expire_on_commit=False)
             
             try:
-                # Инициализируем парсер один раз для всех категорий
-                self._parser = ShopParser(use_cache=True)
+                # Парсер уже инициализирован в конструкторе
                 
                 # Парсим каждую категорию
                 for category in categories:
                     # Проверяем флаг остановки перед каждой категорией
-                    stop_requested = await redis_service.get(PARSE_STOP_REQUESTED_KEY)
+                    stop_requested = await self.redis_service.get(PARSE_STOP_REQUESTED_KEY)
                     if stop_requested:
                         logger.info("Получен запрос на остановку парсинга")
-                        await redis_service.delete(PARSE_STOP_REQUESTED_KEY)
+                        await self.redis_service.delete(PARSE_STOP_REQUESTED_KEY)
                         errors.append("Парсинг остановлен пользователем")
                         # Обновляем статус перед выходом
-                        await redis_service.set(PARSE_STATUS_KEY, {
+                        await self.redis_service.set(PARSE_STATUS_KEY, {
                             "is_running": False,
                             "current_category": None,
                             "processed_categories": processed_categories,
@@ -113,7 +113,7 @@ class ComponentParserService:
                             "processed_products": processed_products,
                             "errors": errors
                         })
-                        await redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
+                        await self.redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
                         logger.info(f"Парсинг остановлен пользователем. Обработано категорий: {processed_categories}/{total_categories}, товаров: {processed_products}")
                         # Закрываем парсер при остановке
                         if self._parser:
@@ -123,7 +123,7 @@ class ComponentParserService:
                     
                     try:
                         # Обновляем статус
-                        await redis_service.set(PARSE_STATUS_KEY, {
+                        await self.redis_service.set(PARSE_STATUS_KEY, {
                             "is_running": True,
                             "current_category": category.display_name,
                             "processed_categories": processed_categories,
@@ -134,7 +134,7 @@ class ComponentParserService:
                         logger.info(f"Парсинг категории: {category.display_name}")
                         
                         # Обновляем timestamp статуса перед началом парсинга
-                        await redis_service.set(PARSE_STATUS_TIMESTAMP_KEY, asyncio.get_event_loop().time())
+                        await self.redis_service.set(PARSE_STATUS_TIMESTAMP_KEY, asyncio.get_event_loop().time())
                         
                         # Запускаем асинхронный парсинг с таймаутом
                         try:
@@ -170,7 +170,7 @@ class ComponentParserService:
                         
                         processed_categories += 1
                         # Обновляем timestamp после обработки категории
-                        await redis_service.set(PARSE_STATUS_TIMESTAMP_KEY, asyncio.get_event_loop().time())
+                        await self.redis_service.set(PARSE_STATUS_TIMESTAMP_KEY, asyncio.get_event_loop().time())
                         logger.info(f"Обработано товаров из категории {category.display_name}: {len(products)}")
                         
                     except Exception as e:
@@ -180,7 +180,7 @@ class ComponentParserService:
                         processed_categories += 1
                 
                 # Финальный статус
-                await redis_service.set(PARSE_STATUS_KEY, {
+                await self.redis_service.set(PARSE_STATUS_KEY, {
                     "is_running": False,
                     "current_category": None,
                     "processed_categories": processed_categories,
@@ -189,7 +189,7 @@ class ComponentParserService:
                     "errors": errors
                 })
                 # Удаляем timestamp
-                await redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
+                await self.redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
                 
                 logger.info(f"Парсинг завершен. Обработано категорий: {processed_categories}/{total_categories}, товаров: {processed_products}")
                 
@@ -206,7 +206,7 @@ class ComponentParserService:
             errors.append(error_msg)
             
             # Обновляем статус с ошибкой
-            await redis_service.set(PARSE_STATUS_KEY, {
+            await self.redis_service.set(PARSE_STATUS_KEY, {
                 "is_running": False,
                 "current_category": None,
                 "processed_categories": processed_categories,
@@ -215,7 +215,7 @@ class ComponentParserService:
                 "errors": errors
             })
             # Удаляем timestamp
-            await redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
+            await self.redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
             # Закрываем парсер при ошибке
             if self._parser:
                 await self._parser.close()
@@ -238,7 +238,7 @@ class ComponentParserService:
     
     async def get_status(self) -> Dict:
         """Получить текущий статус парсинга"""
-        status = await redis_service.get(PARSE_STATUS_KEY)
+        status = await self.redis_service.get(PARSE_STATUS_KEY)
         if status is None:
             return {
                 "is_running": False,
@@ -250,7 +250,7 @@ class ComponentParserService:
             }
         
         # Проверяем флаг остановки - если установлен, сразу обновляем статус
-        stop_requested = await redis_service.get(PARSE_STOP_REQUESTED_KEY)
+        stop_requested = await self.redis_service.get(PARSE_STOP_REQUESTED_KEY)
         if stop_requested and status.get("is_running", False):
             logger.info("Обнаружен флаг остановки парсинга при получении статуса")
             status["is_running"] = False
@@ -259,14 +259,14 @@ class ComponentParserService:
                 status["errors"] = []
             if "Парсинг остановлен пользователем" not in status["errors"]:
                 status["errors"].append("Парсинг остановлен пользователем")
-            await redis_service.set(PARSE_STATUS_KEY, status)
-            await redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
+            await self.redis_service.set(PARSE_STATUS_KEY, status)
+            await self.redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
         
         # Проверяем, не завис ли парсинг
         # Если статус показывает, что парсинг запущен, но timestamp не обновлялся слишком долго,
         # считаем парсинг зависшим и сбрасываем статус
         if status.get("is_running", False):
-            timestamp = await redis_service.get(PARSE_STATUS_TIMESTAMP_KEY)
+            timestamp = await self.redis_service.get(PARSE_STATUS_TIMESTAMP_KEY)
             if timestamp:
                 current_time = asyncio.get_event_loop().time()
                 idle_time = current_time - timestamp
@@ -278,8 +278,8 @@ class ComponentParserService:
                     if "errors" not in status:
                         status["errors"] = []
                     status["errors"].append(f"Парсинг завис и был автоматически остановлен (не обновлялся {int(idle_time)} секунд)")
-                    await redis_service.set(PARSE_STATUS_KEY, status)
-                    await redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
+                    await self.redis_service.set(PARSE_STATUS_KEY, status)
+                    await self.redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
         
         return status
     
@@ -300,7 +300,7 @@ class ComponentParserService:
             return False
         
         # Устанавливаем флаг остановки
-        await redis_service.set(PARSE_STOP_REQUESTED_KEY, True)
+        await self.redis_service.set(PARSE_STOP_REQUESTED_KEY, True)
         logger.info("Запрошена остановка парсинга")
         
         # Немедленно обновляем статус, чтобы фронтенд сразу увидел изменение
@@ -312,8 +312,8 @@ class ComponentParserService:
                 status["errors"] = []
             status["errors"].append("Парсинг остановлен пользователем")
         
-        await redis_service.set(PARSE_STATUS_KEY, status)
-        await redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
+        await self.redis_service.set(PARSE_STATUS_KEY, status)
+        await self.redis_service.delete(PARSE_STATUS_TIMESTAMP_KEY)
         logger.info(f"Статус парсинга обновлен: остановка запрошена. Прогресс: {status.get('processed_categories', 0)}/{status.get('total_categories', 0)} категорий, {status.get('processed_products', 0)} товаров")
         
         # Также пытаемся отменить asyncio.Task, если она еще выполняется
@@ -329,6 +329,4 @@ class ComponentParserService:
         return True
 
 
-# Глобальный экземпляр сервиса
-component_parser_service = ComponentParserService()
 

@@ -5,13 +5,14 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 import asyncio
-from app.services.redis_service import redis_service
+from app.services.redis_service import RedisService
 
 
 class AuthTokenStorage:
     """Хранилище временных токенов авторизации"""
     
-    def __init__(self):
+    def __init__(self, redis_service: RedisService):
+        self.redis_service = redis_service
         self._lock = asyncio.Lock()
         
     async def create_token(self, expires_in: int = 300) -> str:
@@ -33,7 +34,7 @@ class AuthTokenStorage:
                 "used": False
             }
             cache_key = f"auth_token:{token}"
-            await redis_service.set(cache_key, token_data, ttl=expires_in)
+            await self.redis_service.set(cache_key, token_data, ttl=expires_in)
             return token
     
     async def link_telegram_user(self, token: str, telegram_id: int, 
@@ -49,7 +50,7 @@ class AuthTokenStorage:
         """
         async with self._lock:
             cache_key = f"auth_token:{token}"
-            token_data = await redis_service.get(cache_key)
+            token_data = await self.redis_service.get(cache_key)
             
             if not token_data:
                 return False
@@ -57,7 +58,7 @@ class AuthTokenStorage:
             # Проверяем срок действия
             expires_at = datetime.fromisoformat(token_data["expires_at"])
             if datetime.now() > expires_at:
-                await redis_service.delete(cache_key)
+                await self.redis_service.delete(cache_key)
                 return False
             
             # Проверяем, не использован ли уже
@@ -73,7 +74,7 @@ class AuthTokenStorage:
             token_data["used"] = True
             
             # Сохраняем обновленные данные
-            await redis_service.set(cache_key, token_data)
+            await self.redis_service.set(cache_key, token_data)
             
             return True
     
@@ -86,7 +87,7 @@ class AuthTokenStorage:
         """
         async with self._lock:
             cache_key = f"auth_token:{token}"
-            token_data = await redis_service.get(cache_key)
+            token_data = await self.redis_service.get(cache_key)
             
             if not token_data:
                 return None
@@ -94,7 +95,7 @@ class AuthTokenStorage:
             # Проверяем срок действия
             expires_at = datetime.fromisoformat(token_data["expires_at"])
             if datetime.now() > expires_at:
-                await redis_service.delete(cache_key)
+                await self.redis_service.delete(cache_key)
                 return None
             
             return token_data.copy()
@@ -108,7 +109,7 @@ class AuthTokenStorage:
         """
         async with self._lock:
             cache_key = f"auth_token:{token}"
-            token_data = await redis_service.get(cache_key)
+            token_data = await self.redis_service.get(cache_key)
             
             if not token_data:
                 return False
@@ -118,7 +119,7 @@ class AuthTokenStorage:
                 token_data[key] = value
             
             # Сохраняем обновленные данные
-            await redis_service.set(cache_key, token_data)
+            await self.redis_service.set(cache_key, token_data)
             
             return True
     
@@ -131,15 +132,11 @@ class AuthTokenStorage:
         """
         async with self._lock:
             cache_key = f"auth_token:{token}"
-            return await redis_service.delete(cache_key)
+            return await self.redis_service.delete(cache_key)
     
     async def cleanup_expired_tokens(self):
         """Удаляет истекшие токены из хранилища (Redis автоматически удаляет истекшие ключи)"""
         # Redis автоматически удаляет истекшие ключи, поэтому просто возвращаем количество активных
-        active_count = await redis_service.cleanup_expired_keys("auth_token:*")
+        active_count = await self.redis_service.cleanup_expired_keys("auth_token:*")
         return active_count
-
-
-# Глобальный экземпляр хранилища
-auth_token_storage = AuthTokenStorage()
 

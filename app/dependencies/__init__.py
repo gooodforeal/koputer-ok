@@ -19,14 +19,26 @@ from .repositories import (
     get_build_repository,
     get_component_repository,
     get_balance_repository,
-    get_transaction_repository,
-    get_payment_service,
+    get_transaction_repository
+)
+
+# Импорты из services
+from .services import (
+    get_redis_service,
+    get_rabbitmq_service,
+    get_email_publisher,
+    get_auth_token_storage,
     get_auth_service,
     get_build_service,
     get_chat_service,
     get_feedback_service,
     get_user_service,
-    get_balance_service
+    get_balance_service,
+    get_payment_service,
+    get_component_parser_service,
+    get_yookassa_service,
+    get_shop_parser,
+    get_pdf_generator
 )
 
 # Импорты из auth
@@ -54,15 +66,23 @@ __all__ = [
     "get_component_repository",
     "get_balance_repository",
     "get_transaction_repository",
-    "get_payment_service",
     
     # Services
+    "get_redis_service",
+    "get_rabbitmq_service",
+    "get_email_publisher",
+    "get_auth_token_storage",
     "get_auth_service",
     "get_build_service",
     "get_chat_service",
     "get_feedback_service",
     "get_user_service",
     "get_balance_service",
+    "get_payment_service",
+    "get_component_parser_service",
+    "get_yookassa_service",
+    "get_shop_parser",
+    "get_pdf_generator",
     
     # Auth
     "get_current_user",

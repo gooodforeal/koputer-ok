@@ -8,6 +8,8 @@ from datetime import timedelta
 from app.models.user import UserRole
 from app.schemas.auth import GoogleUserInfo
 from app.services.auth_service import AuthService
+from app.services.auth_tokens import AuthTokenStorage
+from app.dependencies.services import get_auth_token_storage
 
 
 class TestGoogleAuth:
@@ -104,10 +106,13 @@ class TestTelegramAuth:
         """Тест инициации Telegram авторизации"""
         # Мокируем auth_token_storage
         mock_token = "test_auth_token_123"
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.create_token = AsyncMock(return_value=mock_token)
         
-        with patch("app.services.auth_tokens.auth_token_storage.create_token", new_callable=AsyncMock) as mock_create:
-            mock_create.return_value = mock_token
-            
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
             response = unauthenticated_client.get("/api/auth/telegram/init")
             
             assert response.status_code == status.HTTP_200_OK
@@ -118,6 +123,9 @@ class TestTelegramAuth:
             assert mock_token in data["bot_url"]
             assert "bot_username" in data
             assert data["expires_in"] == 300
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_authorize_success(self, unauthenticated_client, db_session, mock_redis_service):
@@ -134,28 +142,33 @@ class TestTelegramAuth:
         }
         
         # Мокируем методы auth_token_storage
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.services.auth_tokens.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
-                with patch("app.services.auth_tokens.auth_token_storage.update_token_data", new_callable=AsyncMock) as mock_update:
-                    mock_get_token.return_value = token_data
-                    mock_link.return_value = True
-                    mock_update.return_value = True
-                    
-                    request_data = {
-                        "auth_token": auth_token,
-                        "telegram_id": telegram_id,
-                        "username": "testuser",
-                        "first_name": "Test",
-                        "last_name": "User",
-                        "photo_url": "https://example.com/photo.jpg"
-                    }
-                    
-                    response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
-                    
-                    assert response.status_code == status.HTTP_200_OK
-                    data = response.json()
-                    assert data["status"] == "success"
-                    assert data["message"] == "Authorization completed"
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=token_data)
+        mock_auth_token_storage.link_telegram_user = AsyncMock(return_value=True)
+        mock_auth_token_storage.update_token_data = AsyncMock(return_value=True)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
+            request_data = {
+                "auth_token": auth_token,
+                "telegram_id": telegram_id,
+                "username": "testuser",
+                "first_name": "Test",
+                "last_name": "User",
+                "photo_url": "https://example.com/photo.jpg"
+            }
+            
+            response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["status"] == "success"
+            assert data["message"] == "Authorization completed"
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
         
         # Проверяем, что пользователь был создан в БД
         from app.repositories import UserRepository
@@ -169,9 +182,13 @@ class TestTelegramAuth:
         """Тест авторизации с несуществующим токеном"""
         auth_token = "invalid_token"
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            mock_get_token.return_value = None
-            
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=None)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
             request_data = {
                 "auth_token": auth_token,
                 "telegram_id": "123456789",
@@ -182,6 +199,9 @@ class TestTelegramAuth:
             
             assert response.status_code == status.HTTP_404_NOT_FOUND
             assert "Token not found or expired" in response.json()["detail"]
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_authorize_token_already_used(self, unauthenticated_client, mock_redis_service):
@@ -195,9 +215,13 @@ class TestTelegramAuth:
             "used": True
         }
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            mock_get_token.return_value = token_data
-            
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=token_data)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
             request_data = {
                 "auth_token": auth_token,
                 "telegram_id": "123456789",
@@ -208,6 +232,9 @@ class TestTelegramAuth:
             
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "Token already used" in response.json()["detail"]
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_authorize_link_failed(self, unauthenticated_client, mock_redis_service):
@@ -221,21 +248,27 @@ class TestTelegramAuth:
             "used": False
         }
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.services.auth_tokens.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
-                mock_get_token.return_value = token_data
-                mock_link.return_value = False
-                
-                request_data = {
-                    "auth_token": auth_token,
-                    "telegram_id": "123456789",
-                    "first_name": "Test"
-                }
-                
-                response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
-                
-                assert response.status_code == status.HTTP_400_BAD_REQUEST
-                assert "Failed to link token" in response.json()["detail"]
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=token_data)
+        mock_auth_token_storage.link_telegram_user = AsyncMock(return_value=False)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
+            request_data = {
+                "auth_token": auth_token,
+                "telegram_id": "123456789",
+                "first_name": "Test"
+            }
+            
+            response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
+            
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Failed to link token" in response.json()["detail"]
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_authorize_save_jwt_failed(self, unauthenticated_client, db_session, mock_redis_service):
@@ -249,23 +282,28 @@ class TestTelegramAuth:
             "used": False
         }
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.services.auth_tokens.auth_token_storage.link_telegram_user", new_callable=AsyncMock) as mock_link:
-                with patch("app.services.auth_tokens.auth_token_storage.update_token_data", new_callable=AsyncMock) as mock_update:
-                    mock_get_token.return_value = token_data
-                    mock_link.return_value = True
-                    mock_update.return_value = False  # Не удалось сохранить JWT
-                    
-                    request_data = {
-                        "auth_token": auth_token,
-                        "telegram_id": "123456789",
-                        "first_name": "Test"
-                    }
-                    
-                    response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
-                    
-                    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-                    assert "Failed to save JWT token" in response.json()["detail"]
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=token_data)
+        mock_auth_token_storage.link_telegram_user = AsyncMock(return_value=True)
+        mock_auth_token_storage.update_token_data = AsyncMock(return_value=False)  # Не удалось сохранить JWT
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
+            request_data = {
+                "auth_token": auth_token,
+                "telegram_id": "123456789",
+                "first_name": "Test"
+            }
+            
+            response = unauthenticated_client.post("/api/auth/telegram/authorize", json=request_data)
+            
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            assert "Failed to save JWT token" in response.json()["detail"]
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_auth_check_pending(self, unauthenticated_client, mock_redis_service):
@@ -279,15 +317,22 @@ class TestTelegramAuth:
             "used": False
         }
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            mock_get_token.return_value = token_data
-            
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=token_data)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
             response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["status"] == "pending"
             assert data["access_token"] is None
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_auth_check_completed(self, unauthenticated_client, mock_redis_service):
@@ -305,34 +350,47 @@ class TestTelegramAuth:
             "jwt_token": "jwt_token_123"
         }
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            with patch("app.services.auth_tokens.auth_token_storage.invalidate_token", new_callable=AsyncMock) as mock_invalidate:
-                mock_get_token.return_value = token_data
-                mock_invalidate.return_value = True
-                
-                response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
-                
-                assert response.status_code == status.HTTP_200_OK
-                data = response.json()
-                assert data["status"] == "completed"
-                assert data["access_token"] == "jwt_token_123"
-                assert data["telegram_id"] == "123456789"
-                assert data["username"] == "testuser"
-                assert data["first_name"] == "Test"
-                assert data["last_name"] == "User"
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=token_data)
+        mock_auth_token_storage.invalidate_token = AsyncMock(return_value=True)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
+            response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["status"] == "completed"
+            assert data["access_token"] == "jwt_token_123"
+            assert data["telegram_id"] == "123456789"
+            assert data["username"] == "testuser"
+            assert data["first_name"] == "Test"
+            assert data["last_name"] == "User"
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_auth_check_token_not_found(self, unauthenticated_client, mock_redis_service):
         """Тест проверки несуществующего токена"""
         auth_token = "invalid_token"
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            mock_get_token.return_value = None
-            
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=None)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
             response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
             
             assert response.status_code == status.HTTP_404_NOT_FOUND
             assert "Token not found or expired" in response.json()["detail"]
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
     
     @pytest.mark.asyncio
     async def test_telegram_auth_check_used_but_no_jwt(self, unauthenticated_client, mock_redis_service):
@@ -347,14 +405,21 @@ class TestTelegramAuth:
             "jwt_token": None
         }
         
-        with patch("app.services.auth_tokens.auth_token_storage.get_token_data", new_callable=AsyncMock) as mock_get_token:
-            mock_get_token.return_value = token_data
-            
+        mock_auth_token_storage = AsyncMock(spec=AuthTokenStorage)
+        mock_auth_token_storage.get_token_data = AsyncMock(return_value=token_data)
+        
+        # Переопределяем dependency
+        unauthenticated_client.app.dependency_overrides[get_auth_token_storage] = lambda: mock_auth_token_storage
+        
+        try:
             response = unauthenticated_client.get(f"/api/auth/telegram/check/{auth_token}")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["status"] == "pending"
+        finally:
+            # Очищаем переопределение
+            unauthenticated_client.app.dependency_overrides.pop(get_auth_token_storage, None)
 
 
 class TestGetCurrentUser:

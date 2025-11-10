@@ -29,7 +29,9 @@ async def cleanup_auth_tokens_task():
     """Периодическая очистка истекших токенов авторизации"""
     while True:
         try:
-            from app.services.auth_tokens import auth_token_storage
+            from app.dependencies.services import get_auth_token_storage, get_redis_service
+            redis_service = get_redis_service()
+            auth_token_storage = get_auth_token_storage(redis_service=redis_service)
 
             active_count = await auth_token_storage.cleanup_expired_tokens()
         except Exception as e:
@@ -43,9 +45,12 @@ async def check_pending_payments_task():
         try:
             from app.database import AsyncSessionLocal
             from app.repositories import TransactionRepository, BalanceRepository, UserRepository
-            from app.services.yookassa_service import YooKassaService
-            from app.services.email_publisher import email_publisher
+            from app.dependencies.services import get_email_publisher, get_yookassa_service, get_rabbitmq_service
             from app.models.balance import TransactionStatus
+            
+            rabbitmq_service = get_rabbitmq_service()
+            email_publisher = get_email_publisher(rabbitmq_service=rabbitmq_service)
+            yookassa_service = get_yookassa_service()
 
             async with AsyncSessionLocal() as db:
                 transaction_repo = TransactionRepository(db)
@@ -90,7 +95,7 @@ async def check_pending_payments_task():
                                 continue  # Переходим к следующей транзакции
                         
                         # Получаем статус из Юкассы
-                        payment_status = await YooKassaService.get_payment_status(transaction.payment_id)
+                        payment_status = await yookassa_service.get_payment_status(transaction.payment_id)
                         paid = payment_status.get("paid", False)
                         cancelled = payment_status.get("cancelled", False)
                         yookassa_status = payment_status.get("status", "")

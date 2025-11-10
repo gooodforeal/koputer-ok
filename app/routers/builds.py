@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from app.dependencies.auth import get_current_user, get_optional_user
-from app.dependencies.repositories import get_build_service
+from app.dependencies import get_build_service
 from app.models.user import User
 from app.services.build_service import BuildService
 from app.schemas.build import (
