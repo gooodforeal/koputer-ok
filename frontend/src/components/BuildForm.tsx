@@ -372,7 +372,7 @@ const BuildForm: React.FC = () => {
                 key={component.id}
                 type="button"
                 onClick={() => handleSelectComponent(field, component)}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-start gap-3"
               >
                 {component.image ? (
                   <img
@@ -390,7 +390,7 @@ const BuildForm: React.FC = () => {
                     </svg>
                   </div>
                 )}
-                <span className="flex-1 text-gray-900 dark:text-white truncate">{component.name}</span>
+                <span className="flex-1 min-w-0 text-gray-900 dark:text-white break-words whitespace-normal">{component.name}</span>
                 {component.price && (
                   <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     {component.price.toLocaleString('ru-RU')} ₽
@@ -404,8 +404,8 @@ const BuildForm: React.FC = () => {
         {selected && (
           <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-green-900 dark:text-green-200">{selected.name}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-green-900 dark:text-green-200 break-words">{selected.name}</div>
                 {selected.price && (
                   <div className="text-sm text-green-700 dark:text-green-300">
                     {selected.price.toLocaleString('ru-RU')} ₽
