@@ -295,6 +295,28 @@ def mock_redis_service():
     return mock_redis
 
 
+@pytest.fixture(scope="function")
+def mock_rabbitmq_service():
+    """Создает мок для RabbitMQ сервиса"""
+    from app.services.rabbitmq_service import RabbitMQService
+    mock_rabbitmq = AsyncMock(spec=RabbitMQService)
+    mock_rabbitmq.connect = AsyncMock(return_value=None)
+    mock_rabbitmq.disconnect = AsyncMock(return_value=None)
+    mock_rabbitmq.ensure_connected = AsyncMock(return_value=None)
+    mock_rabbitmq.declare_exchange = AsyncMock()
+    mock_rabbitmq.declare_queue = AsyncMock()
+    mock_rabbitmq.bind_queue = AsyncMock()
+    mock_rabbitmq.publish_message = AsyncMock(return_value=None)
+    mock_rabbitmq.publish_json = AsyncMock(return_value=None)
+    mock_rabbitmq.setup_celery_queue = AsyncMock()
+    # Создаем моки для возвращаемых значений
+    mock_exchange = MagicMock()
+    mock_queue = MagicMock()
+    mock_queue.name = "test_queue"
+    mock_rabbitmq.setup_celery_queue.return_value = (mock_exchange, mock_queue)
+    return mock_rabbitmq
+
+
 def _create_test_app(override_get_db):
     """Вспомогательная функция для создания тестового приложения"""
     app = create_app()
@@ -306,7 +328,7 @@ def _create_test_app(override_get_db):
 
 
 @pytest.fixture(scope="function")
-def client(override_get_db, mock_redis_service, test_user):
+def client(override_get_db, mock_redis_service, mock_rabbitmq_service, test_user):
     """Создает тестовый клиент FastAPI с авторизованным пользователем"""
     # Создаем отдельный экземпляр приложения для этого клиента
     app = _create_test_app(override_get_db)
@@ -321,16 +343,17 @@ def client(override_get_db, mock_redis_service, test_user):
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis сервис на протяжении всего теста
+    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
     with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with TestClient(app) as test_client:
-            yield test_client
+        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
+            with TestClient(app) as test_client:
+                yield test_client
     
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def unauthenticated_client(override_get_db, mock_redis_service):
+def unauthenticated_client(override_get_db, mock_redis_service, mock_rabbitmq_service):
     """Создает неавторизованный тестовый клиент"""
     # Создаем отдельный экземпляр приложения для этого клиента
     app = _create_test_app(override_get_db)
@@ -340,16 +363,17 @@ def unauthenticated_client(override_get_db, mock_redis_service):
     
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis сервис на протяжении всего теста
+    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
     with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with TestClient(app) as test_client:
-            yield test_client
+        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
+            with TestClient(app) as test_client:
+                yield test_client
     
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def client_user2(override_get_db, mock_redis_service, test_user2):
+def client_user2(override_get_db, mock_redis_service, mock_rabbitmq_service, test_user2):
     """Создает тестовый клиент для второго пользователя"""
     # Создаем отдельный экземпляр приложения для этого клиента
     app = _create_test_app(override_get_db)
@@ -363,10 +387,11 @@ def client_user2(override_get_db, mock_redis_service, test_user2):
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis сервис на протяжении всего теста
+    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
     with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with TestClient(app) as test_client:
-            yield test_client
+        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
+            with TestClient(app) as test_client:
+                yield test_client
     
     app.dependency_overrides.clear()
 
@@ -389,7 +414,7 @@ async def test_admin(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture(scope="function")
-def admin_client(override_get_db, mock_redis_service, test_admin):
+def admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, test_admin):
     """Создает тестовый клиент для администратора"""
     # Создаем отдельный экземпляр приложения для этого клиента
     app = _create_test_app(override_get_db)
@@ -403,10 +428,11 @@ def admin_client(override_get_db, mock_redis_service, test_admin):
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis сервис на протяжении всего теста
+    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
     with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with TestClient(app) as test_client:
-            yield test_client
+        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
+            with TestClient(app) as test_client:
+                yield test_client
     
     app.dependency_overrides.clear()
 
@@ -429,7 +455,7 @@ async def test_super_admin(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture(scope="function")
-def super_admin_client(override_get_db, mock_redis_service, test_super_admin):
+def super_admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, test_super_admin):
     """Создает тестовый клиент для супер-администратора"""
     # Создаем отдельный экземпляр приложения для этого клиента
     app = _create_test_app(override_get_db)
@@ -443,10 +469,11 @@ def super_admin_client(override_get_db, mock_redis_service, test_super_admin):
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
     
-    # Мокаем Redis сервис на протяжении всего теста
+    # Мокаем Redis и RabbitMQ сервисы на протяжении всего теста
     with patch('app.services.redis_service.redis_service', mock_redis_service):
-        with TestClient(app) as test_client:
-            yield test_client
+        with patch('app.services.rabbitmq_service.rabbitmq_service', mock_rabbitmq_service):
+            with TestClient(app) as test_client:
+                yield test_client
     
     app.dependency_overrides.clear()
 

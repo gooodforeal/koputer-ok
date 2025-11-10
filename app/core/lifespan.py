@@ -28,14 +28,14 @@ async def lifespan(app: FastAPI):
         logger.error(f"Ошибка при инициализации Redis: {e}")
         logger.warning("Приложение будет работать без кэширования")
     
-    # Инициализация RabbitMQ для отправки email
+    # Инициализация RabbitMQ
     try:
-        from app.services.email_publisher import email_publisher
-        await email_publisher.connect()
+        from app.services.rabbitmq_service import rabbitmq_service
+        await rabbitmq_service.connect()
         logger.info("RabbitMQ соединение инициализировано")
     except Exception as e:
         logger.error(f"Ошибка при инициализации RabbitMQ: {e}")
-        logger.warning("Приложение будет работать без отправки email")
+        logger.warning("Приложение будет работать без RabbitMQ")
     
     # Запуск фоновых задач
     cleanup_task = asyncio.create_task(cleanup_cache_task())
@@ -75,8 +75,8 @@ async def lifespan(app: FastAPI):
     
     # Закрытие RabbitMQ соединения
     try:
-        from app.services.email_publisher import email_publisher
-        await email_publisher.disconnect()
+        from app.services.rabbitmq_service import rabbitmq_service
+        await rabbitmq_service.disconnect()
         logger.info("RabbitMQ соединение закрыто")
     except Exception as e:
         logger.error(f"Ошибка при закрытии RabbitMQ соединения: {e}")
