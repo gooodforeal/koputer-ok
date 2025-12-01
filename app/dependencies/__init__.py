@@ -19,7 +19,7 @@ from .repositories import (
     get_build_repository,
     get_component_repository,
     get_balance_repository,
-    get_transaction_repository
+    get_transaction_repository,
 )
 
 # Импорты из services
@@ -38,7 +38,7 @@ from .services import (
     get_component_parser_service,
     get_yookassa_service,
     get_shop_parser,
-    get_pdf_generator
+    get_pdf_generator,
 )
 
 # Импорты из auth
@@ -50,14 +50,13 @@ from .roles import (
     require_any_role,
     require_admin,
     require_super_admin,
-    require_admin_or_super_admin
+    require_admin_or_super_admin,
 )
 
 # Экспорт всех зависимостей
 __all__ = [
     # Database
     "get_db_session",
-    
     # Repositories
     "get_user_repository",
     "get_chat_repository",
@@ -66,7 +65,6 @@ __all__ = [
     "get_component_repository",
     "get_balance_repository",
     "get_transaction_repository",
-    
     # Services
     "get_redis_service",
     "get_rabbitmq_service",
@@ -83,11 +81,9 @@ __all__ = [
     "get_yookassa_service",
     "get_shop_parser",
     "get_pdf_generator",
-    
     # Auth
     "get_current_user",
     "security",
-    
     # Roles
     "require_role",
     "require_any_role",

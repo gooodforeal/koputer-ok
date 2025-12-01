@@ -6,6 +6,7 @@ from app.models.base import BaseModel
 
 class UserRole(str, enum.Enum):
     """Роли пользователей в системе"""
+
     USER = "USER"
     ADMIN = "ADMIN"
     SUPER_ADMIN = "SUPER_ADMIN"
@@ -24,18 +25,36 @@ class User(BaseModel):
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
 
     # Связи с чатами
-    user_chats = relationship("Chat", foreign_keys="Chat.user_id", back_populates="user")
-    admin_chats = relationship("Chat", foreign_keys="Chat.admin_id", back_populates="admin")
-    
+    user_chats = relationship(
+        "Chat", foreign_keys="Chat.user_id", back_populates="user"
+    )
+    admin_chats = relationship(
+        "Chat", foreign_keys="Chat.admin_id", back_populates="admin"
+    )
+
     # Связи с отзывами
-    feedbacks = relationship("Feedback", foreign_keys="Feedback.user_id", back_populates="user")
-    assigned_feedbacks = relationship("Feedback", foreign_keys="Feedback.assigned_to_id", back_populates="assigned_to")
-    
+    feedbacks = relationship(
+        "Feedback", foreign_keys="Feedback.user_id", back_populates="user"
+    )
+    assigned_feedbacks = relationship(
+        "Feedback", foreign_keys="Feedback.assigned_to_id", back_populates="assigned_to"
+    )
+
     # Связи со сборками
-    builds = relationship("Build", back_populates="author", cascade="all, delete-orphan")
-    build_ratings = relationship("BuildRating", back_populates="user", cascade="all, delete-orphan")
-    build_comments = relationship("BuildComment", back_populates="user", cascade="all, delete-orphan")
-    
+    builds = relationship(
+        "Build", back_populates="author", cascade="all, delete-orphan"
+    )
+    build_ratings = relationship(
+        "BuildRating", back_populates="user", cascade="all, delete-orphan"
+    )
+    build_comments = relationship(
+        "BuildComment", back_populates="user", cascade="all, delete-orphan"
+    )
+
     # Связи с балансом и транзакциями
-    balance = relationship("Balance", back_populates="user", cascade="all, delete-orphan", uselist=False)
-    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+    balance = relationship(
+        "Balance", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    transactions = relationship(
+        "Transaction", back_populates="user", cascade="all, delete-orphan"
+    )

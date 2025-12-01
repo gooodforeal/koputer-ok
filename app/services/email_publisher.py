@@ -1,6 +1,7 @@
 """
 Сервис для публикации задач отправки email в RabbitMQ
 """
+
 import logging
 import uuid
 from typing import Optional
@@ -12,27 +13,24 @@ logger = logging.getLogger(__name__)
 
 class EmailPublisher:
     """Класс для публикации задач отправки email в RabbitMQ"""
-    
+
     def __init__(self, rabbitmq_service: RabbitMQService):
         self.rabbitmq_service = rabbitmq_service
-    
+
     async def connect(self):
         """Подключение к RabbitMQ"""
         await self.rabbitmq_service.connect()
-    
+
     async def disconnect(self):
         """Отключение от RabbitMQ"""
         await self.rabbitmq_service.disconnect()
-    
+
     async def publish_login_email(
-        self,
-        email: str,
-        user_name: str,
-        login_time: Optional[str] = None
+        self, email: str, user_name: str, login_time: Optional[str] = None
     ):
         """
         Публикует задачу отправки email при входе в систему через RabbitMQ
-        
+
         Args:
             email: Email адрес получателя
             user_name: Имя пользователя
@@ -41,12 +39,12 @@ class EmailPublisher:
         if not email:
             logger.warning("Email не указан, пропускаем отправку")
             return
-        
+
         try:
             # Настраиваем очередь и exchange для Celery
             queue_name = "celery_login"
             exchange, queue = await self.rabbitmq_service.setup_celery_queue(queue_name)
-            
+
             # Формируем сообщение в формате Celery (JSON сериализация)
             task_id = str(uuid.uuid4())
             task_message = {
@@ -59,17 +57,19 @@ class EmailPublisher:
                 "expires": None,
                 "utc": True,
             }
-            
+
             # Публикуем сообщение через универсальный сервис
             await self.rabbitmq_service.publish_json(
                 exchange=exchange,
                 routing_key=queue_name,
                 data=task_message,
-                message_id=task_id
+                message_id=task_id,
             )
-            
-            logger.info(f"Задача отправки email о входе на {email} опубликована в RabbitMQ очередь {queue_name} (task_id: {task_id})")
-            
+
+            logger.info(
+                f"Задача отправки email о входе на {email} опубликована в RabbitMQ очередь {queue_name} (task_id: {task_id})"
+            )
+
         except Exception as e:
             logger.error(f"Ошибка при публикации задачи отправки email: {str(e)}")
             # Пытаемся переподключиться
@@ -78,7 +78,7 @@ class EmailPublisher:
                 await self.rabbitmq_service.connect()
             except:
                 pass
-    
+
     async def publish_balance_email(
         self,
         email: str,
@@ -86,11 +86,11 @@ class EmailPublisher:
         amount: str,
         new_balance: str,
         payment_time: Optional[str] = None,
-        transaction_id: Optional[str] = None
+        transaction_id: Optional[str] = None,
     ):
         """
         Публикует задачу отправки email при пополнении баланса через RabbitMQ
-        
+
         Args:
             email: Email адрес получателя
             user_name: Имя пользователя
@@ -102,12 +102,12 @@ class EmailPublisher:
         if not email:
             logger.warning("Email не указан, пропускаем отправку")
             return
-        
+
         try:
             # Настраиваем очередь и exchange для Celery
             queue_name = "celery_balance"
             exchange, queue = await self.rabbitmq_service.setup_celery_queue(queue_name)
-            
+
             # Формируем сообщение в формате Celery (JSON сериализация)
             task_id = str(uuid.uuid4())
             task_message = {
@@ -119,7 +119,7 @@ class EmailPublisher:
                     amount,
                     new_balance,
                     payment_time or datetime.now().isoformat(),
-                    transaction_id
+                    transaction_id,
                 ],
                 "kwargs": {},
                 "retries": 0,
@@ -127,23 +127,26 @@ class EmailPublisher:
                 "expires": None,
                 "utc": True,
             }
-            
+
             # Публикуем сообщение через универсальный сервис
             await self.rabbitmq_service.publish_json(
                 exchange=exchange,
                 routing_key=queue_name,
                 data=task_message,
-                message_id=task_id
+                message_id=task_id,
             )
-            
-            logger.info(f"Задача отправки email о пополнении баланса на {email} опубликована в RabbitMQ очередь {queue_name} (task_id: {task_id})")
-            
+
+            logger.info(
+                f"Задача отправки email о пополнении баланса на {email} опубликована в RabbitMQ очередь {queue_name} (task_id: {task_id})"
+            )
+
         except Exception as e:
-            logger.error(f"Ошибка при публикации задачи отправки email о пополнении: {str(e)}")
+            logger.error(
+                f"Ошибка при публикации задачи отправки email о пополнении: {str(e)}"
+            )
             # Пытаемся переподключиться
             try:
                 await self.rabbitmq_service.disconnect()
                 await self.rabbitmq_service.connect()
             except:
                 pass
-

@@ -5,14 +5,14 @@ Revises: 2355ca3cbb87
 Create Date: 2025-10-31 21:42:14.141090
 
 """
+
 from alembic import op
-import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
-revision = '1b66b1474c37'
-down_revision = '2355ca3cbb87'
+revision = "1b66b1474c37"
+down_revision = "2355ca3cbb87"
 branch_labels = None
 depends_on = None
 
@@ -36,22 +36,22 @@ def upgrade() -> None:
             WHEN duplicate_object THEN null;
         END $$;
     """)
-    
+
     # Создаем enum объект для использования в таблице
     component_category_enum = postgresql.ENUM(
-        'PROCESSORY',
-        'MATERINSKIE_PLATY',
-        'VIDEOKARTY',
-        'OPERATIVNAYA_PAMYAT',
-        'KORPUSA',
-        'BLOKI_PITANIYA',
-        'ZHESTKIE_DISKI',
-        'OHLAZHDENIE',
-        'SSD_NAKOPITELI',
-        name='componentcategory',
-        create_type=False  # Не создавать тип, так как мы уже создали его выше
+        "PROCESSORY",
+        "MATERINSKIE_PLATY",
+        "VIDEOKARTY",
+        "OPERATIVNAYA_PAMYAT",
+        "KORPUSA",
+        "BLOKI_PITANIYA",
+        "ZHESTKIE_DISKI",
+        "OHLAZHDENIE",
+        "SSD_NAKOPITELI",
+        name="componentcategory",
+        create_type=False,  # Не создавать тип, так как мы уже создали его выше
     )
-    
+
     # Проверяем, существует ли таблица, и создаем только если не существует
     op.execute("""
         DO $$ BEGIN
@@ -91,12 +91,6 @@ def downgrade() -> None:
             WHEN undefined_object THEN null;
         END $$;
     """)
-    
+
     # Удаляем enum
-    op.execute('DROP TYPE IF EXISTS componentcategory')
-
-
-
-
-
-
+    op.execute("DROP TYPE IF EXISTS componentcategory")

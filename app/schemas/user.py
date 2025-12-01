@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional, List
 from app.models.user import UserRole
@@ -6,6 +6,7 @@ from app.models.user import UserRole
 
 class UserBase(BaseModel):
     """Базовая схема пользователя"""
+
     email: Optional[EmailStr] = None
     name: str
     picture: Optional[str] = None
@@ -13,6 +14,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Схема для создания пользователя"""
+
     google_id: Optional[str] = None
     telegram_id: Optional[str] = None
     username: Optional[str] = None
@@ -20,6 +22,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     """Схема для ответа с данными пользователя"""
+
     id: int
     google_id: Optional[str] = None
     telegram_id: Optional[str] = None
@@ -35,6 +38,7 @@ class UserResponse(UserBase):
 
 class UserUpdate(BaseModel):
     """Схема для обновления пользователя"""
+
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     picture: Optional[str] = None
@@ -44,6 +48,7 @@ class UserUpdate(BaseModel):
 
 class UserStats(BaseModel):
     """Схема для статистики пользователей"""
+
     total_users: int
     active_users: int
     inactive_users: int
@@ -51,10 +56,9 @@ class UserStats(BaseModel):
 
 class UserSearchResponse(BaseModel):
     """Схема для ответа с поиском пользователей"""
+
     users: List[UserResponse]
     total: int
     page: int
     per_page: int
     total_pages: int
-
-

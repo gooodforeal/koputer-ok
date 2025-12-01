@@ -7,6 +7,7 @@ from app.models.balance import TransactionType, TransactionStatus
 
 class BalanceResponse(BaseModel):
     """Схема для ответа с балансом пользователя"""
+
     id: int
     user_id: int
     balance: Decimal
@@ -19,6 +20,7 @@ class BalanceResponse(BaseModel):
 
 class TransactionBase(BaseModel):
     """Базовая схема транзакции"""
+
     amount: Decimal = Field(..., gt=0, description="Сумма транзакции")
     transaction_type: TransactionType
     description: Optional[str] = None
@@ -27,11 +29,13 @@ class TransactionBase(BaseModel):
 
 class TransactionCreate(TransactionBase):
     """Схема для создания транзакции"""
+
     pass
 
 
 class TransactionResponse(BaseModel):
     """Схема для ответа с транзакцией"""
+
     id: int
     balance_id: int
     user_id: int
@@ -51,6 +55,7 @@ class TransactionResponse(BaseModel):
 
 class TransactionListResponse(BaseModel):
     """Схема для списка транзакций с пагинацией"""
+
     transactions: List[TransactionResponse]
     total: int
     page: int
@@ -60,13 +65,17 @@ class TransactionListResponse(BaseModel):
 
 class PaymentCreate(BaseModel):
     """Схема для создания платежа"""
-    amount: Decimal = Field(..., ge=50, description="Сумма пополнения (минимум 50 рублей)")
+
+    amount: Decimal = Field(
+        ..., ge=50, description="Сумма пополнения (минимум 50 рублей)"
+    )
     description: Optional[str] = "Пополнение баланса"
     return_url: Optional[str] = None  # URL для возврата после оплаты
 
 
 class PaymentResponse(BaseModel):
     """Схема для ответа с данными платежа"""
+
     payment_id: str
     confirmation_url: str
     amount: Decimal
@@ -75,15 +84,16 @@ class PaymentResponse(BaseModel):
 
 class PaymentWebhook(BaseModel):
     """Схема для вебхука от Юкассы"""
+
     event: str
     object: dict
 
 
 class BalanceStats(BaseModel):
     """Статистика по балансу"""
+
     current_balance: Decimal
     total_deposited: Decimal
     total_withdrawn: Decimal
     total_spent: Decimal
     transactions_count: int
-

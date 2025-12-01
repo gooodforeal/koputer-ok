@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from app.models.user import UserRole
 from app.models.chat import ChatStatus
 
 
@@ -32,7 +31,7 @@ class MessageResponse(MessageBase):
     sender_id: int
     is_read: bool
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -51,7 +50,7 @@ class UserInfo(BaseModel):
     id: int
     name: str
     email: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -64,7 +63,7 @@ class ChatResponse(ChatBase):
     messages: List[MessageResponse] = []
     user: UserInfo
     admin: Optional[UserInfo] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -80,13 +79,14 @@ class ChatListResponse(BaseModel):
     user_name: Optional[str] = None
     admin_name: Optional[str] = None
     unread_count: int = 0
-    
+
     class Config:
         from_attributes = True
 
 
 class ChatSummary(BaseModel):
     """Краткая информация о чате для списка"""
+
     id: int
     user_name: str
     admin_name: Optional[str]

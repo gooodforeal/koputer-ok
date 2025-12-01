@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import RedirectResponse
 from app.schemas.auth import (
     LogoutResponse,
     TelegramAuthorizeRequest,
     TelegramAuthorizeResponse,
-    TelegramAuthCheckResponse
+    TelegramAuthCheckResponse,
 )
 from app.schemas.user import UserResponse
 from app.models.user import User
@@ -15,9 +14,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 @router.get("/google")
-async def google_auth(
-    auth_service: AuthService = Depends(get_auth_service)
-):
+async def google_auth(auth_service: AuthService = Depends(get_auth_service)):
     """Инициация OAuth2 авторизации через Google"""
     return await auth_service.get_google_auth_url()
 
@@ -25,16 +22,14 @@ async def google_auth(
 @router.get("/google/callback")
 async def google_callback(
     code: str = Query(..., description="Authorization code from Google"),
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """Обработка callback от Google OAuth2"""
     return await auth_service.handle_google_callback(code)
 
 
 @router.get("/telegram/init")
-async def telegram_auth_init(
-    auth_service: AuthService = Depends(get_auth_service)
-):
+async def telegram_auth_init(auth_service: AuthService = Depends(get_auth_service)):
     """
     Инициация авторизации через Telegram бот
     Создает временный токен и возвращает ссылку на бота
@@ -45,7 +40,7 @@ async def telegram_auth_init(
 @router.post("/telegram/authorize", response_model=TelegramAuthorizeResponse)
 async def telegram_authorize(
     request: TelegramAuthorizeRequest,
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """
     Обработка авторизации пользователя через Telegram бот
@@ -56,8 +51,7 @@ async def telegram_authorize(
 
 @router.get("/telegram/check/{auth_token}", response_model=TelegramAuthCheckResponse)
 async def telegram_auth_check(
-    auth_token: str,
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_token: str, auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Проверка статуса авторизации по токену

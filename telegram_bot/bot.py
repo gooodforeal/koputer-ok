@@ -1,9 +1,10 @@
 """
 Telegram бот для авторизации пользователей
 """
+
 import logging
 from typing import Optional
-from aiogram import Bot, Dispatcher, types, F
+from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command, CommandStart
 from aiogram.enums import ParseMode
 import httpx
@@ -12,8 +13,7 @@ from telegram_bot.config import settings
 
 # Настройка логирования
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ async def cmd_start(message: types.Message):
     """
     # Получаем параметр после /start
     args = message.text.split(maxsplit=1)
-    
+
     if len(args) > 1 and args[1]:
         # Есть параметр - это авторизация
         auth_token = args[1]
@@ -52,12 +52,16 @@ async def handle_auth(message: types.Message, auth_token: str):
     try:
         if not bot:
             logger.error("Бот не инициализирован!")
-            await message.answer("❌ Ошибка: бот не инициализирован. Обратитесь в поддержку.")
+            await message.answer(
+                "❌ Ошибка: бот не инициализирован. Обратитесь в поддержку."
+            )
             return
-            
+
         user = message.from_user
-        logger.info(f"Обработка авторизации для пользователя {user.id} ({user.username}) с токеном {auth_token[:10]}...")
-        
+        logger.info(
+            f"Обработка авторизации для пользователя {user.id} ({user.username}) с токеном {auth_token[:10]}..."
+        )
+
         # Получаем фото профиля пользователя
         photo_url = None
         try:
@@ -67,12 +71,12 @@ async def handle_auth(message: types.Message, auth_token: str):
                 photo_url = f"https://api.telegram.org/file/bot{settings.telegram_bot_token}/{file.file_path}"
         except Exception as e:
             logger.warning(f"Не удалось получить фото профиля: {e}")
-        
+
         # Формируем полное имя
         full_name = user.first_name or "Пользователь"
         if user.last_name:
             full_name += f" {user.last_name}"
-        
+
         # Отправляем запрос на бекенд для авторизации
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
@@ -84,10 +88,10 @@ async def handle_auth(message: types.Message, auth_token: str):
                         "username": user.username,
                         "first_name": user.first_name or "",
                         "last_name": user.last_name or "",
-                        "photo_url": photo_url
-                    }
+                        "photo_url": photo_url,
+                    },
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     logger.info(f"Авторизация успешна для пользователя {user.id}")
@@ -108,12 +112,14 @@ async def handle_auth(message: types.Message, auth_token: str):
                     )
                 else:
                     error_text = response.text
-                    logger.error(f"Ошибка авторизации: {response.status_code} - {error_text}")
+                    logger.error(
+                        f"Ошибка авторизации: {response.status_code} - {error_text}"
+                    )
                     await message.answer(
                         "❌ Произошла ошибка при авторизации.\n"
                         "Пожалуйста, попробуйте позже или обратитесь в поддержку."
                     )
-                    
+
             except httpx.TimeoutException:
                 logger.error("Таймаут при запросе к бекенду")
                 await message.answer(
@@ -126,7 +132,7 @@ async def handle_auth(message: types.Message, auth_token: str):
                     "❌ Не удалось соединиться с сервером.\n"
                     "Пожалуйста, попробуйте позже или обратитесь в поддержку."
                 )
-                
+
     except Exception as e:
         logger.error(f"Ошибка при авторизации: {e}", exc_info=True)
         await message.answer(
@@ -163,30 +169,30 @@ async def echo_handler(message: types.Message):
 async def start_bot():
     """Запускает бота"""
     global bot, dp
-    
+
     logger.info("Запуск Telegram бота...")
-    
+
     try:
         # Проверяем наличие токена
         if not settings.telegram_bot_token:
             logger.error("TELEGRAM_BOT_TOKEN не установлен в настройках!")
             raise ValueError("TELEGRAM_BOT_TOKEN не установлен")
-        
+
         # Инициализируем бота и диспетчер
         bot = Bot(token=settings.telegram_bot_token, parse_mode=ParseMode.HTML)
         dp = Dispatcher()
-        
+
         # Регистрируем обработчики
         dp.message.register(cmd_start, CommandStart())
         dp.message.register(cmd_help, Command("help"))
         dp.message.register(echo_handler)
-        
-        logger.info(f"Telegram бот инициализирован")
-        
+
+        logger.info("Telegram бот инициализирован")
+
         # Удаляем вебхук если есть
         await bot.delete_webhook(drop_pending_updates=True)
         logger.info("Вебхук удален, запускаем polling...")
-        
+
         # Запускаем polling
         await dp.start_polling(bot, skip_updates=True)
     except Exception as e:
@@ -197,19 +203,19 @@ async def start_bot():
 async def stop_bot():
     """Останавливает бота"""
     global bot, dp
-    
+
     logger.info("Остановка Telegram бота...")
     if bot:
         try:
             await bot.session.close()
         except Exception as e:
             logger.error(f"Ошибка при остановке бота: {e}")
-    
+
     bot = None
     dp = None
 
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(start_bot())
 
+    asyncio.run(start_bot())

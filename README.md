@@ -43,19 +43,24 @@ Komputer.ok - это современная платформа для подбо
 ### Для пользователей
 - 🔐 **Авторизация**: OAuth2 через Google и авторизация через Telegram бота
 - 🖥️ **Сборки ПК**: Создание, просмотр и управление компьютерными сборками
-- 🔍 **Поиск компонентов**: Поиск и фильтрация комплектующих
-- ⭐ **Рейтинги и отзывы**: Оценка и комментирование сборок
+  - Экспорт сборок в PDF
+  - Рейтинги и комментарии к сборкам
+  - Поиск и фильтрация сборок
+  - Топ популярных сборок
+- 🔍 **Компоненты**: Поиск и фильтрация комплектующих
+- ⭐ **Отзывы**: Система отзывов и обратной связи
 - 💬 **Чат-поддержка**: Общение с администраторами в реальном времени
 - 💳 **Система баланса**: Пополнение баланса через Юкассу, просмотр истории транзакций и статистики
-- 📊 **Дашборд**: Личная панель управления со статистикой
+- 📊 **Профиль**: Личная панель управления со статистикой
 - 📧 **Email уведомления**: Автоматические email уведомления о входе в систему и пополнении баланса
 
 ### Для администраторов
-- 👥 **Управление пользователями**: Просмотр и редактирование пользователей
+- 👥 **Управление пользователями**: Просмотр, поиск и редактирование пользователей, управление ролями
 - 📝 **Обратная связь**: Просмотр и обработка отзывов пользователей
 - 🔧 **Управление сборками**: Модерация контента
-- 💬 **Чат-модерация**: Поддержка пользователей через встроенный чат
+- 💬 **Чат-модерация**: Поддержка пользователей через встроенный чат, назначение администраторов на чаты
 - 📈 **Статистика**: Аналитика использования системы
+- 📦 **Управление компонентами**: Добавление и управление компонентами ПК
 
 ## 🛠 Технологический стек
 
@@ -83,6 +88,10 @@ Komputer.ok - это современная платформа для подбо
 - **YooKassa** - платежная система для приема платежей
 - **SMTP** - отправка email уведомлений
 - **Docker & Docker Compose** - контейнеризация
+- **Prometheus** - сбор метрик приложения
+- **Grafana** - визуализация метрик и логов
+- **Loki** - агрегация логов
+- **Promtail** - сбор логов из контейнеров
 
 ## 📦 Требования
 
@@ -270,6 +279,10 @@ docker-compose up --build
 - RabbitMQ на порту 5672 (веб-интерфейс на 15672)
 - Celery workers для обработки email задач
 - Telegram бот
+- Prometheus на порту 9090 (сбор метрик)
+- Grafana на порту 3001 (визуализация метрик и логов)
+- Loki на порту 3100 (агрегация логов)
+- Promtail на порту 9080 (сбор логов)
 
 ### Локальный запуск
 
@@ -341,6 +354,10 @@ python make_admin.py email@example.com "Имя Администратора" SUP
 - **Backend API**: http://localhost:8000
 - **API документация**: http://localhost:8000/docs (Swagger UI)
 - **API альтернативная документация**: http://localhost:8000/redoc (ReDoc)
+- **Health Check**: http://localhost:8000/api/health
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 
 ## 🔌 API
 
@@ -356,21 +373,42 @@ python make_admin.py email@example.com "Имя Администратора" SUP
 - `POST /api/auth/logout` - Выход из системы
 
 #### Пользователи
-- `GET /api/users` - Список пользователей (требует админ-прав)
-- `GET /api/users/{id}` - Информация о пользователе
-- `PUT /api/users/{id}` - Обновление пользователя
+- `GET /api/users/profile` - Получить профиль текущего пользователя
+- `PUT /api/users/profile` - Обновить профиль пользователя
+- `GET /api/users/` - Список всех пользователей (только для супер-администратора)
+- `GET /api/users/search` - Поиск пользователей с фильтрами
+- `GET /api/users/stats` - Статистика пользователей
+- `GET /api/users/{user_id}` - Информация о пользователе
+- `PUT /api/users/{user_id}/role` - Обновление роли пользователя (только для супер-администратора)
 
 #### Сборки
-- `GET /api/builds` - Список сборок
-- `GET /api/builds/{id}` - Детали сборки
+- `GET /api/builds` - Список сборок с фильтрацией и пагинацией
+- `GET /api/builds/top` - Топ популярных сборок
+- `GET /api/builds/my` - Мои сборки (требует авторизации)
+- `GET /api/builds/stats` - Статистика по сборкам
+- `GET /api/builds/components/unique` - Получить уникальные компоненты из сборок
+- `GET /api/builds/{build_id}` - Детали сборки
 - `POST /api/builds` - Создание сборки (требует авторизации)
-- `PUT /api/builds/{id}` - Обновление сборки
-- `DELETE /api/builds/{id}` - Удаление сборки
+- `PUT /api/builds/{build_id}` - Обновление сборки
+- `DELETE /api/builds/{build_id}` - Удаление сборки
+- `GET /api/builds/{build_id}/export/pdf` - Экспорт сборки в PDF
+
+#### Рейтинги сборок
+- `POST /api/builds/{build_id}/ratings` - Создать/обновить оценку сборки
+- `PUT /api/builds/{build_id}/ratings` - Обновить оценку сборки
+- `DELETE /api/builds/{build_id}/ratings` - Удалить оценку сборки
+- `GET /api/builds/{build_id}/ratings/my` - Получить мою оценку сборки
+
+#### Комментарии к сборкам
+- `GET /api/builds/{build_id}/comments` - Получить комментарии к сборке
+- `POST /api/builds/{build_id}/comments` - Создать комментарий
+- `PUT /api/builds/{build_id}/comments/{comment_id}` - Обновить комментарий
+- `DELETE /api/builds/{build_id}/comments/{comment_id}` - Удалить комментарий
 
 #### Компоненты
-- `GET /api/components` - Список компонентов
+- `GET /api/components` - Список компонентов с фильтрацией
 - `GET /api/components/{id}` - Детали компонента
-- `POST /api/components` - Создание компонента (админ)
+- `POST /api/components` - Создание компонента (требует админ-прав)
 
 #### Отзывы
 - `GET /api/feedback` - Список отзывов
@@ -378,10 +416,21 @@ python make_admin.py email@example.com "Имя Администратора" SUP
 - `GET /api/feedback/{id}` - Детали отзыва
 
 #### Чат
-- `GET /api/chat` - Список чатов (авторизация)
+- `GET /api/chat/my` - Получить мой чат (требует авторизации)
 - `POST /api/chat` - Создание чата
-- `GET /api/chat/{id}` - Получение чата
-- `POST /api/chat/{id}/messages` - Отправка сообщения
+- `GET /api/chat/{chat_id}` - Получение чата
+- `GET /api/chat/{chat_id}/messages` - Получить сообщения чата
+- `POST /api/chat/{chat_id}/messages` - Отправка сообщения
+- `GET /api/chat/admin/chats` - Список чатов для администратора
+- `POST /api/chat/{chat_id}/assign` - Назначить администратора на чат
+- `PUT /api/chat/{chat_id}/read` - Пометка чата как прочитанного
+- `PUT /api/chat/{chat_id}/status` - Обновление статуса чата
+- `POST /api/chat/{chat_id}/close` - Закрытие чата
+- `POST /api/chat/{chat_id}/reopen` - Повторное открытие чата
+- `POST /api/chat/{chat_id}/start-working` - Начало работы над чатом
+- `GET /api/chat/summary` - Сводка моих чатов
+- `GET /api/chat/admin/summary` - Сводка чатов для администратора
+- `GET /api/chat/admin/status/{status}` - Получить чаты по статусу
 
 #### Баланс и платежи
 - `GET /api/balance` - Получить баланс текущего пользователя
@@ -391,6 +440,10 @@ python make_admin.py email@example.com "Имя Администратора" SUP
 - `POST /api/balance/payment/webhook` - Вебхук от Юкассы для обработки платежей
 - `GET /api/balance/payment/{payment_id}/status` - Получить статус платежа
 
+#### Health Check
+- `GET /api/health` - Проверка состояния приложения
+- `GET /api/` - Корневой эндпоинт API
+
 Подробная документация доступна по адресу `/docs` после запуска сервера.
 
 ## 📁 Структура проекта
@@ -398,39 +451,72 @@ python make_admin.py email@example.com "Имя Администратора" SUP
 ```
 oauth-google/
 ├── app/                          # Backend приложение
-│   ├── api/                      # API эндпоинты
+│   ├── api/                      # API эндпоинты (health check)
 │   ├── core/                     # Ядро приложения
-│   ├── dependencies/              # FastAPI зависимости
+│   │   ├── app_factory.py        # Фабрика приложения
+│   │   ├── exception_handlers.py # Обработчики исключений
+│   │   ├── lifespan.py          # Управление жизненным циклом
+│   │   └── middleware.py         # Middleware (CORS, Prometheus)
+│   ├── dependencies/             # FastAPI зависимости
+│   │   ├── auth.py               # Зависимости аутентификации
+│   │   ├── database.py           # Зависимости БД
+│   │   ├── repositories.py       # Зависимости репозиториев
+│   │   ├── roles.py              # Зависимости ролей
+│   │   └── services.py           # Зависимости сервисов
+│   ├── exceptions/                # Исключения приложения
 │   ├── models/                   # SQLAlchemy модели
+│   │   ├── user.py               # Модель пользователя
+│   │   ├── build.py              # Модель сборки
+│   │   ├── component.py          # Модель компонента
+│   │   ├── chat.py               # Модель чата
+│   │   ├── feedback.py           # Модель отзыва
+│   │   └── balance.py             # Модель баланса
 │   ├── repositories/             # Репозитории для работы с БД
 │   ├── routers/                  # API роутеры
+│   │   ├── auth.py               # Роутер аутентификации
+│   │   ├── users.py              # Роутер пользователей
+│   │   ├── builds.py             # Роутер сборок
+│   │   ├── components.py         # Роутер компонентов
+│   │   ├── chat.py               # Роутер чата
+│   │   ├── feedback.py           # Роутер отзывов
+│   │   └── balance.py            # Роутер баланса
 │   ├── schemas/                  # Pydantic схемы
 │   ├── services/                 # Бизнес-логика и сервисы
+│   │   ├── build_service.py      # Сервис сборок
+│   │   ├── user_service.py       # Сервис пользователей
+│   │   ├── pdf_generator.py      # Генератор PDF
+│   │   └── ...                   # Другие сервисы
 │   ├── utils/                    # Утилиты
 │   ├── auth.py                   # JWT аутентификация
 │   ├── config.py                 # Конфигурация
 │   ├── database.py               # Подключение к БД
-│   ├── main.py                   # Точка входа
-│   └── oauth.py                  # OAuth логика
+│   └── main.py                   # Точка входа
 ├── frontend/                     # Frontend приложение
 │   ├── src/
 │   │   ├── components/           # React компоненты
 │   │   ├── contexts/             # React контексты
 │   │   ├── services/             # API сервисы
-│   │   ├── types/                # TypeScript типы
+│   │   ├── types/               # TypeScript типы
 │   │   ├── utils/                # Утилиты
 │   │   ├── App.tsx               # Главный компонент
 │   │   └── index.tsx             # Точка входа
 │   └── package.json
 ├── telegram_bot/                 # Telegram бот
 │   ├── bot.py                    # Основная логика бота
+│   ├── config.py                 # Конфигурация бота
 │   └── main.py                   # Запуск бота
-├── celery_workers/                # Celery workers для фоновых задач
+├── celery_workers/               # Celery workers для фоновых задач
 │   ├── celery_app.py             # Конфигурация Celery
 │   ├── tasks.py                  # Задачи отправки email
 │   ├── config.py                 # Настройки для workers
 │   ├── template_loader.py        # Загрузка шаблонов email
 │   └── templates/                # HTML и текстовые шаблоны email
+├── grafana/                      # Конфигурация мониторинга
+│   ├── datasources.yaml          # Источники данных Grafana
+│   ├── prometheus.yml            # Конфигурация Prometheus
+│   ├── loki-config.yaml          # Конфигурация Loki
+│   ├── promtail-config.yaml      # Конфигурация Promtail
+│   └── dashboards/               # Дашборды Grafana
 ├── alembic/                      # Миграции БД
 │   └── versions/                 # Файлы миграций
 ├── tests/                        # Тесты
@@ -476,11 +562,19 @@ npm install package_name
 - **Routers** (`app/routers/`) - API эндпоинты
 - **Repositories** (`app/repositories/`) - Слой работы с БД
 - **Services** (`app/services/`) - Бизнес-логика
+  - `build_service.py` - Сервис для работы со сборками
+  - `user_service.py` - Сервис для работы с пользователями
+  - `pdf_generator.py` - Генератор PDF для экспорта сборок
   - `email_publisher.py` - Публикация задач отправки email в RabbitMQ
   - `background_tasks.py` - Фоновые задачи приложения
 - **Celery Workers** (`celery_workers/`) - Фоновые задачи для отправки email
   - `tasks.py` - Задачи отправки email (вход в систему, пополнение баланса)
   - `template_loader.py` - Загрузка и рендеринг шаблонов email
+- **Monitoring** (`grafana/`) - Конфигурация мониторинга
+  - Prometheus для сбора метрик
+  - Grafana для визуализации
+  - Loki для агрегации логов
+  - Promtail для сбора логов из контейнеров
 
 ## 🧪 Тестирование
 
@@ -502,8 +596,11 @@ pytest tests/test_builds.py
 1. Обновите `.env` файл с production значениями
 2. Установите `ENVIRONMENT=production`
 3. Настройте безопасные секретные ключи
-4. Обновите CORS настройки в `app/core/app_factory.py`
+4. Обновите CORS настройки в `app/core/middleware.py`
 5. Используйте production-сборку Docker образов
+6. Настройте HTTPS для всех сервисов
+7. Настройте мониторинг и алерты в Grafana
+8. Настройте резервное копирование базы данных
 
 ### Docker Compose Production
 
@@ -601,6 +698,14 @@ rabbitmqctl list_queues
 - Убедитесь, что RabbitMQ запущен и доступен на указанном порту
 - Проверьте учетные данные (`RABBITMQ_USER`, `RABBITMQ_PASSWORD`)
 - Для Docker убедитесь, что контейнер RabbitMQ запущен и здоров
+- Проверьте веб-интерфейс RabbitMQ на порту 15672
+
+### Проблемы с мониторингом
+
+- **Grafana не отображает данные**: Проверьте, что Prometheus и Loki запущены и доступны
+- **Метрики не собираются**: Убедитесь, что Prometheus может подключиться к backend (проверьте `/metrics` эндпоинт)
+- **Логи не отображаются**: Проверьте, что Promtail собирает логи из контейнеров и отправляет их в Loki
+- **Доступ к Grafana**: По умолчанию логин/пароль: admin/admin (измените в production!)
 
 ### Очистка и перезапуск
 

@@ -1,4 +1,3 @@
-
 import asyncio
 from logging.config import fileConfig
 from sqlalchemy import pool
@@ -13,11 +12,6 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
 
 from app.database import Base, database_url
-from app.models.user import User, UserRole
-from app.models.chat import Chat, Message
-from app.models.feedback import Feedback, FeedbackStatus, FeedbackType
-from app.models.component import Component, ComponentCategory
-from app.models.build import Build, BuildRating, BuildComment, BuildView
 
 
 # this is the Alembic Config object, which provides

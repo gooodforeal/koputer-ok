@@ -1,6 +1,7 @@
 """
 Celery приложение для обработки задач отправки email
 """
+
 from celery import Celery
 from celery_workers.config import settings
 
@@ -31,4 +32,3 @@ celery_app.conf.update(
 
 # Импортируем задачи
 from celery_workers import tasks  # noqa
-

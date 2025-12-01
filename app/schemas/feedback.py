@@ -6,7 +6,10 @@ from app.models.feedback import FeedbackType, FeedbackStatus
 
 class FeedbackBase(BaseModel):
     """Базовая схема отзыва"""
-    title: str = Field(..., min_length=3, max_length=255, description="Заголовок отзыва")
+
+    title: str = Field(
+        ..., min_length=3, max_length=255, description="Заголовок отзыва"
+    )
     description: str = Field(..., min_length=10, description="Описание отзыва")
     type: FeedbackType = Field(..., description="Тип отзыва")
     rating: Optional[int] = Field(None, ge=1, le=5, description="Оценка от 1 до 5")
@@ -14,11 +17,13 @@ class FeedbackBase(BaseModel):
 
 class FeedbackCreate(FeedbackBase):
     """Схема для создания отзыва"""
+
     pass
 
 
 class FeedbackUpdate(BaseModel):
     """Схема для обновления отзыва"""
+
     title: Optional[str] = Field(None, min_length=3, max_length=255)
     description: Optional[str] = Field(None, min_length=10)
     type: Optional[FeedbackType] = None
@@ -27,6 +32,7 @@ class FeedbackUpdate(BaseModel):
 
 class FeedbackAdminUpdate(BaseModel):
     """Схема для обновления отзыва администратором"""
+
     status: Optional[FeedbackStatus] = None
     assigned_to_id: Optional[int] = None
     admin_response: Optional[str] = None
@@ -34,16 +40,18 @@ class FeedbackAdminUpdate(BaseModel):
 
 class FeedbackUserInfo(BaseModel):
     """Информация о пользователе"""
+
     id: int
     name: str
     email: Optional[str] = None
     picture: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class FeedbackResponse(FeedbackBase):
     """Схема ответа с отзывом"""
+
     id: int
     status: FeedbackStatus
     user_id: int
@@ -53,12 +61,13 @@ class FeedbackResponse(FeedbackBase):
     updated_at: Optional[datetime] = None
     user: FeedbackUserInfo
     assigned_to: Optional[FeedbackUserInfo] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class FeedbackListItem(BaseModel):
     """Упрощенная схема отзыва для списков"""
+
     id: int
     title: str
     type: FeedbackType
@@ -69,12 +78,13 @@ class FeedbackListItem(BaseModel):
     assigned_to_id: Optional[int] = None
     assigned_to_name: Optional[str] = None
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class FeedbackListResponse(BaseModel):
     """Схема ответа со списком отзывов и пагинацией"""
+
     feedbacks: List[FeedbackResponse]
     total: int
     page: int
@@ -84,6 +94,7 @@ class FeedbackListResponse(BaseModel):
 
 class FeedbackStats(BaseModel):
     """Статистика по отзывам"""
+
     total: int
     new: int
     in_review: int
@@ -92,4 +103,3 @@ class FeedbackStats(BaseModel):
     rejected: int
     by_type: dict[str, int]
     average_rating: Optional[float] = None
-

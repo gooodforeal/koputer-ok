@@ -1,34 +1,37 @@
 """
 Конфигурация и фикстуры для тестов
 """
+
 import pytest
 import pytest_asyncio
 import sys
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock, MagicMock as MockModule
 
+
 # Мокируем зависимости ДО импорта приложения, чтобы избежать ошибок импорта
 # если они не установлены
 def _create_mock_modules():
     """Создает моки для модулей, которые могут отсутствовать"""
-    
+
     # Моки для парсера компонентов (не нужны для тестов builds)
     component_parser_module = MockModule()
     component_parser_module.component_parser_service = MockModule()
-    sys.modules['app.services.component_parser'] = component_parser_module
-    
+    sys.modules["app.services.component_parser"] = component_parser_module
+
     shop_parser_module = MockModule()
     shop_parser_module.ShopParser = MockModule()
     shop_parser_module.ComponentsCategory = MockModule()
-    sys.modules['app.services.shop_parser'] = shop_parser_module
-    
+    sys.modules["app.services.shop_parser"] = shop_parser_module
+
     # Мок для bs4 (BeautifulSoup)
     bs4_module = MockModule()
     bs4_module.BeautifulSoup = MockModule()
-    sys.modules['bs4'] = bs4_module
+    sys.modules["bs4"] = bs4_module
+
 
 # Устанавливаем моки ДО импорта
 _create_mock_modules()
@@ -37,7 +40,6 @@ from app.database import Base, get_db
 from app.core.app_factory import create_app
 from app.models.user import User, UserRole
 from app.models.component import Component, ComponentCategory
-from app.models.build import Build
 from app.models.feedback import Feedback, FeedbackType, FeedbackStatus
 from app.dependencies.auth import get_current_user, get_optional_user
 from app.services.redis_service import RedisService
@@ -46,7 +48,7 @@ from app.services.pdf_generator import PDFGenerator
 from app.dependencies.services import (
     get_redis_service,
     get_rabbitmq_service,
-    get_pdf_generator
+    get_pdf_generator,
 )
 
 
@@ -58,7 +60,7 @@ test_engine = create_async_engine(
     TEST_DATABASE_URL,
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
-    echo=False
+    echo=False,
 )
 
 # Создаем фабрику сессий
@@ -67,7 +69,7 @@ TestSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False
+    autoflush=False,
 )
 
 
@@ -77,11 +79,11 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     # Создаем все таблицы
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with TestSessionLocal() as session:
         yield session
         await session.rollback()
-    
+
     # Удаляем все таблицы после теста
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -90,8 +92,10 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture(scope="function")
 def override_get_db(db_session: AsyncSession):
     """Переопределяет зависимость get_db"""
+
     async def _get_db():
         yield db_session
+
     return _get_db
 
 
@@ -104,7 +108,7 @@ async def test_user(db_session: AsyncSession) -> User:
         picture="https://example.com/pic.jpg",
         google_id="12345",
         is_active=True,
-        role=UserRole.USER
+        role=UserRole.USER,
     )
     db_session.add(user)
     await db_session.commit()
@@ -121,7 +125,7 @@ async def test_user2(db_session: AsyncSession) -> User:
         picture="https://example.com/pic2.jpg",
         google_id="67890",
         is_active=True,
-        role=UserRole.USER
+        role=UserRole.USER,
     )
     db_session.add(user)
     await db_session.commit()
@@ -137,49 +141,49 @@ async def test_components(db_session: AsyncSession) -> list[Component]:
             name="Intel Core i5-12400F",
             link="https://example.com/cpu",
             price=15000,
-            category=ComponentCategory.PROCESSORY
+            category=ComponentCategory.PROCESSORY,
         ),
         Component(
             name="ASUS PRIME B660M-K",
             link="https://example.com/motherboard",
             price=8000,
-            category=ComponentCategory.MATERINSKIE_PLATY
+            category=ComponentCategory.MATERINSKIE_PLATY,
         ),
         Component(
             name="NVIDIA GeForce RTX 3060",
             link="https://example.com/gpu",
             price=35000,
-            category=ComponentCategory.VIDEOKARTY
+            category=ComponentCategory.VIDEOKARTY,
         ),
         Component(
             name="Kingston 16GB DDR4",
             link="https://example.com/ram",
             price=5000,
-            category=ComponentCategory.OPERATIVNAYA_PAMYAT
+            category=ComponentCategory.OPERATIVNAYA_PAMYAT,
         ),
         Component(
             name="Deepcool Matrexx 55",
             link="https://example.com/case",
             price=4000,
-            category=ComponentCategory.KORPUSA
+            category=ComponentCategory.KORPUSA,
         ),
         Component(
             name="AeroCool VX-550",
             link="https://example.com/psu",
             price=3000,
-            category=ComponentCategory.BLOKI_PITANIYA
+            category=ComponentCategory.BLOKI_PITANIYA,
         ),
         Component(
             name="Deepcool AK400",
             link="https://example.com/cooler",
             price=2000,
-            category=ComponentCategory.OHLAZHDENIE
+            category=ComponentCategory.OHLAZHDENIE,
         ),
         Component(
             name="Samsung 980 500GB",
             link="https://example.com/ssd",
             price=6000,
-            category=ComponentCategory.SSD_NAKOPITELI
+            category=ComponentCategory.SSD_NAKOPITELI,
         ),
     ]
     for component in components:
@@ -199,7 +203,7 @@ async def test_feedback(db_session: AsyncSession, test_user: User) -> Feedback:
         type=FeedbackType.GENERAL,
         status=FeedbackStatus.NEW,
         rating=5,
-        user_id=test_user.id
+        user_id=test_user.id,
     )
     db_session.add(feedback)
     await db_session.commit()
@@ -208,7 +212,9 @@ async def test_feedback(db_session: AsyncSession, test_user: User) -> Feedback:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: User, test_admin: User) -> list[Feedback]:
+async def test_feedbacks(
+    db_session: AsyncSession, test_user: User, test_user2: User, test_admin: User
+) -> list[Feedback]:
     """Создает несколько тестовых отзывов"""
     # Создаем дополнительные пользователи для отзывов, так как один пользователь может иметь только один отзыв
     user3 = User(
@@ -217,7 +223,7 @@ async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: 
         picture="https://example.com/pic3.jpg",
         google_id="user3",
         is_active=True,
-        role=UserRole.USER
+        role=UserRole.USER,
     )
     user4 = User(
         email="user4@example.com",
@@ -225,14 +231,14 @@ async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: 
         picture="https://example.com/pic4.jpg",
         google_id="user4",
         is_active=True,
-        role=UserRole.USER
+        role=UserRole.USER,
     )
     db_session.add(user3)
     db_session.add(user4)
     await db_session.commit()
     await db_session.refresh(user3)
     await db_session.refresh(user4)
-    
+
     feedbacks = [
         Feedback(
             title="Отзыв о баге",
@@ -240,7 +246,7 @@ async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: 
             type=FeedbackType.BUG,
             status=FeedbackStatus.NEW,
             rating=2,
-            user_id=test_user.id
+            user_id=test_user.id,
         ),
         Feedback(
             title="Предложение функции",
@@ -249,7 +255,7 @@ async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: 
             status=FeedbackStatus.IN_REVIEW,
             rating=4,
             user_id=test_user2.id,
-            assigned_to_id=test_admin.id
+            assigned_to_id=test_admin.id,
         ),
         Feedback(
             title="Улучшение интерфейса",
@@ -258,7 +264,7 @@ async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: 
             status=FeedbackStatus.IN_PROGRESS,
             rating=5,
             user_id=user3.id,
-            assigned_to_id=test_admin.id
+            assigned_to_id=test_admin.id,
         ),
         Feedback(
             title="Общий отзыв",
@@ -267,7 +273,7 @@ async def test_feedbacks(db_session: AsyncSession, test_user: User, test_user2: 
             status=FeedbackStatus.RESOLVED,
             rating=4,
             user_id=user4.id,
-            admin_response="Спасибо за отзыв!"
+            admin_response="Спасибо за отзыв!",
         ),
     ]
     for feedback in feedbacks:
@@ -315,6 +321,7 @@ def mock_rabbitmq_service():
 def mock_pdf_generator():
     """Создает мок для PDFGenerator"""
     mock_pdf = AsyncMock(spec=PDFGenerator)
+
     async def mock_create_build_pdf(build, buffer):
         """Мок метод для генерации PDF"""
         buffer.write(b"%PDF-1.4\n")
@@ -322,91 +329,114 @@ def mock_pdf_generator():
         buffer.write(b"xref\n0 2\ntrailer\n<< /Size 2 >>\n")
         buffer.write(b"startxref\n25\n%%EOF\n")
         buffer.seek(0)
+
     mock_pdf.create_build_pdf = mock_create_build_pdf
     return mock_pdf
 
 
-def _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator):
+def _create_test_app(
+    override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator
+):
     """Вспомогательная функция для создания тестового приложения"""
     app = create_app()
-    
+
     # Переопределяем зависимость базы данных
     app.dependency_overrides[get_db] = override_get_db
-    
+
     # Переопределяем зависимости сервисов
     def _get_redis_service():
         return mock_redis_service
-    
+
     def _get_rabbitmq_service():
         return mock_rabbitmq_service
-    
+
     def _get_pdf_generator():
         return mock_pdf_generator
-    
+
     app.dependency_overrides[get_redis_service] = _get_redis_service
     app.dependency_overrides[get_rabbitmq_service] = _get_rabbitmq_service
     app.dependency_overrides[get_pdf_generator] = _get_pdf_generator
-    
+
     return app
 
 
 @pytest.fixture(scope="function")
-def client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_user):
+def client(
+    override_get_db,
+    mock_redis_service,
+    mock_rabbitmq_service,
+    mock_pdf_generator,
+    test_user,
+):
     """Создает тестовый клиент FastAPI с авторизованным пользователем"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
-    
+    app = _create_test_app(
+        override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator
+    )
+
     # Переопределяем зависимость авторизации
     async def _get_current_user():
         return test_user
-    
+
     async def _get_optional_user():
         return test_user
-    
+
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def unauthenticated_client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator):
+def unauthenticated_client(
+    override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator
+):
     """Создает неавторизованный тестовый клиент"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
-    
+    app = _create_test_app(
+        override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator
+    )
+
     async def _get_optional_user():
         return None
-    
+
     app.dependency_overrides[get_optional_user] = _get_optional_user
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def client_user2(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_user2):
+def client_user2(
+    override_get_db,
+    mock_redis_service,
+    mock_rabbitmq_service,
+    mock_pdf_generator,
+    test_user2,
+):
     """Создает тестовый клиент для второго пользователя"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
-    
+    app = _create_test_app(
+        override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator
+    )
+
     async def _get_current_user():
         return test_user2
-    
+
     async def _get_optional_user():
         return test_user2
-    
+
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 
@@ -419,7 +449,7 @@ async def test_admin(db_session: AsyncSession) -> User:
         picture="https://example.com/admin.jpg",
         google_id="admin123",
         is_active=True,
-        role=UserRole.ADMIN
+        role=UserRole.ADMIN,
     )
     db_session.add(user)
     await db_session.commit()
@@ -428,23 +458,31 @@ async def test_admin(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture(scope="function")
-def admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_admin):
+def admin_client(
+    override_get_db,
+    mock_redis_service,
+    mock_rabbitmq_service,
+    mock_pdf_generator,
+    test_admin,
+):
     """Создает тестовый клиент для администратора"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
-    
+    app = _create_test_app(
+        override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator
+    )
+
     async def _get_current_user():
         return test_admin
-    
+
     async def _get_optional_user():
         return test_admin
-    
+
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 
@@ -457,7 +495,7 @@ async def test_super_admin(db_session: AsyncSession) -> User:
         picture="https://example.com/superadmin.jpg",
         google_id="superadmin123",
         is_active=True,
-        role=UserRole.SUPER_ADMIN
+        role=UserRole.SUPER_ADMIN,
     )
     db_session.add(user)
     await db_session.commit()
@@ -466,23 +504,31 @@ async def test_super_admin(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture(scope="function")
-def super_admin_client(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator, test_super_admin):
+def super_admin_client(
+    override_get_db,
+    mock_redis_service,
+    mock_rabbitmq_service,
+    mock_pdf_generator,
+    test_super_admin,
+):
     """Создает тестовый клиент для супер-администратора"""
     # Создаем отдельный экземпляр приложения для этого клиента
-    app = _create_test_app(override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator)
-    
+    app = _create_test_app(
+        override_get_db, mock_redis_service, mock_rabbitmq_service, mock_pdf_generator
+    )
+
     async def _get_current_user():
         return test_super_admin
-    
+
     async def _get_optional_user():
         return test_super_admin
-    
+
     app.dependency_overrides[get_current_user] = _get_current_user
     app.dependency_overrides[get_optional_user] = _get_optional_user
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 
@@ -502,15 +548,15 @@ def pytest_configure(config):
 def pytest_sessionstart(session):
     """Патч для FixtureDef - добавляем отсутствующий атрибут unittest"""
     import _pytest.fixtures
-    
+
     # Сохраняем оригинальный __init__
     original_init = _pytest.fixtures.FixtureDef.__init__
-    
+
     def patched_init(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
         # Добавляем отсутствующий атрибут unittest = False
-        if not hasattr(self, 'unittest'):
-            object.__setattr__(self, 'unittest', False)
-    
+        if not hasattr(self, "unittest"):
+            object.__setattr__(self, "unittest", False)
+
     # Заменяем __init__
     _pytest.fixtures.FixtureDef.__init__ = patched_init

@@ -8,7 +8,7 @@ from app.schemas.balance import (
     TransactionListResponse,
     PaymentCreate,
     PaymentResponse,
-    BalanceStats
+    BalanceStats,
 )
 from app.models.user import User
 from app.models.balance import TransactionType, TransactionStatus
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/balance", tags=["balance"])
 @router.get("/", response_model=BalanceResponse)
 async def get_balance(
     current_user: User = Depends(get_current_user),
-    balance_service: BalanceService = Depends(get_balance_service)
+    balance_service: BalanceService = Depends(get_balance_service),
 ):
     """Получить баланс текущего пользователя"""
     return await balance_service.get_balance(current_user.id)
@@ -33,7 +33,7 @@ async def get_balance(
 @router.get("/stats", response_model=BalanceStats)
 async def get_balance_stats(
     current_user: User = Depends(get_current_user),
-    balance_service: BalanceService = Depends(get_balance_service)
+    balance_service: BalanceService = Depends(get_balance_service),
 ):
     """Получить статистику по балансу"""
     return await balance_service.get_balance_stats(current_user.id)
@@ -42,11 +42,15 @@ async def get_balance_stats(
 @router.get("/transactions", response_model=TransactionListResponse)
 async def get_transactions(
     page: int = Query(1, ge=1, description="Номер страницы"),
-    per_page: int = Query(20, ge=1, le=100, description="Количество записей на странице"),
-    transaction_type: Optional[TransactionType] = Query(None, description="Фильтр по типу"),
+    per_page: int = Query(
+        20, ge=1, le=100, description="Количество записей на странице"
+    ),
+    transaction_type: Optional[TransactionType] = Query(
+        None, description="Фильтр по типу"
+    ),
     status: Optional[TransactionStatus] = Query(None, description="Фильтр по статусу"),
     current_user: User = Depends(get_current_user),
-    balance_service: BalanceService = Depends(get_balance_service)
+    balance_service: BalanceService = Depends(get_balance_service),
 ):
     """Получить список транзакций текущего пользователя"""
     return await balance_service.get_transactions(
@@ -54,7 +58,7 @@ async def get_transactions(
         page=page,
         per_page=per_page,
         transaction_type=transaction_type,
-        status=status
+        status=status,
     )
 
 
@@ -62,7 +66,7 @@ async def get_transactions(
 async def create_payment(
     payment_data: PaymentCreate,
     current_user: User = Depends(get_current_user),
-    payment_service: PaymentService = Depends(get_payment_service)
+    payment_service: PaymentService = Depends(get_payment_service),
 ):
     """Создать платеж для пополнения баланса через Юкассу"""
     return await payment_service.create_payment(current_user.id, payment_data)
@@ -70,12 +74,13 @@ async def create_payment(
 
 @router.post("/payment/webhook")
 async def payment_webhook(
-    request: Request,
-    payment_service: PaymentService = Depends(get_payment_service)
+    request: Request, payment_service: PaymentService = Depends(get_payment_service)
 ):
     """Обработчик вебхука от Юкассы для уведомлений о статусе платежа"""
-    logger.info(f"Webhook received from IP: {request.client.host if request.client else 'unknown'}")
-    
+    logger.info(
+        f"Webhook received from IP: {request.client.host if request.client else 'unknown'}"
+    )
+
     webhook_data = await request.json()
     return await payment_service.process_webhook(webhook_data)
 
@@ -84,8 +89,7 @@ async def payment_webhook(
 async def get_payment_status(
     payment_id: str,
     current_user: User = Depends(get_current_user),
-    payment_service: PaymentService = Depends(get_payment_service)
+    payment_service: PaymentService = Depends(get_payment_service),
 ):
     """Получить статус платежа и обновить его в базе данных, если он изменился"""
     return await payment_service.sync_payment_status(payment_id, current_user.id)
-

@@ -6,6 +6,7 @@ from app.models.component import ComponentCategory
 
 class ComponentResponse(BaseModel):
     """Схема ответа для компонента"""
+
     id: int
     name: str
     link: str
@@ -21,6 +22,7 @@ class ComponentResponse(BaseModel):
 
 class ParseStatusResponse(BaseModel):
     """Схема ответа для статуса парсинга"""
+
     is_running: bool
     current_category: Optional[str] = None
     processed_categories: int = 0
@@ -31,6 +33,6 @@ class ParseStatusResponse(BaseModel):
 
 class ParseStartResponse(BaseModel):
     """Схема ответа для запуска парсинга"""
+
     message: str
     status: str
-

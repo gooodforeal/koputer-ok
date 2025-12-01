@@ -1,6 +1,7 @@
 """
 Зависимости для сервисов
 """
+
 from fastapi import Depends
 from app.services.redis_service import RedisService
 from app.services.rabbitmq_service import RabbitMQService
@@ -23,7 +24,7 @@ from .repositories import (
     get_chat_repository,
     get_feedback_repository,
     get_balance_repository,
-    get_transaction_repository
+    get_transaction_repository,
 )
 from app.repositories import (
     UserRepository,
@@ -31,7 +32,7 @@ from app.repositories import (
     ChatRepository,
     FeedbackRepository,
     BalanceRepository,
-    TransactionRepository
+    TransactionRepository,
 )
 
 __all__ = [
@@ -49,7 +50,7 @@ __all__ = [
     "get_component_parser_service",
     "get_yookassa_service",
     "get_shop_parser",
-    "get_pdf_generator"
+    "get_pdf_generator",
 ]
 
 
@@ -61,7 +62,7 @@ _rabbitmq_service: RabbitMQService | None = None
 def get_redis_service() -> RedisService:
     """
     Получить экземпляр RedisService (singleton)
-    
+
     Returns:
         RedisService: Экземпляр сервиса Redis
     """
@@ -74,7 +75,7 @@ def get_redis_service() -> RedisService:
 def get_rabbitmq_service() -> RabbitMQService:
     """
     Получить экземпляр RabbitMQService (singleton)
-    
+
     Returns:
         RabbitMQService: Экземпляр сервиса RabbitMQ
     """
@@ -85,14 +86,14 @@ def get_rabbitmq_service() -> RabbitMQService:
 
 
 def get_email_publisher(
-    rabbitmq_service: RabbitMQService = Depends(get_rabbitmq_service)
+    rabbitmq_service: RabbitMQService = Depends(get_rabbitmq_service),
 ) -> EmailPublisher:
     """
     Получить экземпляр EmailPublisher
-    
+
     Args:
         rabbitmq_service: Сервис RabbitMQ
-        
+
     Returns:
         EmailPublisher: Экземпляр publisher для email
     """
@@ -100,14 +101,14 @@ def get_email_publisher(
 
 
 def get_auth_token_storage(
-    redis_service: RedisService = Depends(get_redis_service)
+    redis_service: RedisService = Depends(get_redis_service),
 ) -> AuthTokenStorage:
     """
     Получить экземпляр AuthTokenStorage
-    
+
     Args:
         redis_service: Сервис Redis
-        
+
     Returns:
         AuthTokenStorage: Экземпляр хранилища токенов
     """
@@ -117,16 +118,16 @@ def get_auth_token_storage(
 def get_auth_service(
     user_repo: UserRepository = Depends(get_user_repository),
     auth_token_storage: AuthTokenStorage = Depends(get_auth_token_storage),
-    email_publisher: EmailPublisher = Depends(get_email_publisher)
+    email_publisher: EmailPublisher = Depends(get_email_publisher),
 ) -> AuthService:
     """
     Получить экземпляр AuthService
-    
+
     Args:
         user_repo: Репозиторий пользователей
         auth_token_storage: Хранилище токенов авторизации
         email_publisher: Publisher для отправки email
-        
+
     Returns:
         AuthService: Экземпляр сервиса авторизации
     """
@@ -136,7 +137,7 @@ def get_auth_service(
 def get_pdf_generator() -> PDFGenerator:
     """
     Получить экземпляр PDFGenerator
-    
+
     Returns:
         PDFGenerator: Экземпляр генератора PDF
     """
@@ -146,16 +147,16 @@ def get_pdf_generator() -> PDFGenerator:
 def get_build_service(
     build_repo: BuildRepository = Depends(get_build_repository),
     redis_service: RedisService = Depends(get_redis_service),
-    pdf_generator: PDFGenerator = Depends(get_pdf_generator)
+    pdf_generator: PDFGenerator = Depends(get_pdf_generator),
 ) -> BuildService:
     """
     Получить экземпляр BuildService
-    
+
     Args:
         build_repo: Репозиторий сборок
         redis_service: Сервис Redis
         pdf_generator: Генератор PDF
-        
+
     Returns:
         BuildService: Экземпляр сервиса сборок
     """
@@ -163,14 +164,14 @@ def get_build_service(
 
 
 def get_chat_service(
-    chat_repo: ChatRepository = Depends(get_chat_repository)
+    chat_repo: ChatRepository = Depends(get_chat_repository),
 ) -> ChatService:
     """
     Получить экземпляр ChatService
-    
+
     Args:
         chat_repo: Репозиторий чатов
-        
+
     Returns:
         ChatService: Экземпляр сервиса чатов
     """
@@ -178,14 +179,14 @@ def get_chat_service(
 
 
 def get_feedback_service(
-    feedback_repo: FeedbackRepository = Depends(get_feedback_repository)
+    feedback_repo: FeedbackRepository = Depends(get_feedback_repository),
 ) -> FeedbackService:
     """
     Получить экземпляр FeedbackService
-    
+
     Args:
         feedback_repo: Репозиторий отзывов
-        
+
     Returns:
         FeedbackService: Экземпляр сервиса отзывов
     """
@@ -193,14 +194,14 @@ def get_feedback_service(
 
 
 def get_user_service(
-    user_repo: UserRepository = Depends(get_user_repository)
+    user_repo: UserRepository = Depends(get_user_repository),
 ) -> UserService:
     """
     Получить экземпляр UserService
-    
+
     Args:
         user_repo: Репозиторий пользователей
-        
+
     Returns:
         UserService: Экземпляр сервиса пользователей
     """
@@ -209,15 +210,15 @@ def get_user_service(
 
 def get_balance_service(
     balance_repo: BalanceRepository = Depends(get_balance_repository),
-    transaction_repo: TransactionRepository = Depends(get_transaction_repository)
+    transaction_repo: TransactionRepository = Depends(get_transaction_repository),
 ) -> BalanceService:
     """
     Получить экземпляр BalanceService
-    
+
     Args:
         balance_repo: Репозиторий балансов
         transaction_repo: Репозиторий транзакций
-        
+
     Returns:
         BalanceService: Экземпляр сервиса баланса
     """
@@ -227,7 +228,7 @@ def get_balance_service(
 def get_yookassa_service() -> type[YooKassaService]:
     """
     Получить класс YooKassaService
-    
+
     Returns:
         type[YooKassaService]: Класс сервиса Юкассы (все методы статические)
     """
@@ -239,28 +240,30 @@ def get_payment_service(
     transaction_repo: TransactionRepository = Depends(get_transaction_repository),
     user_repo: UserRepository = Depends(get_user_repository),
     email_publisher: EmailPublisher = Depends(get_email_publisher),
-    yookassa_service: type[YooKassaService] = Depends(get_yookassa_service)
+    yookassa_service: type[YooKassaService] = Depends(get_yookassa_service),
 ) -> PaymentService:
     """
     Получить экземпляр PaymentService
-    
+
     Args:
         balance_repo: Репозиторий балансов
         transaction_repo: Репозиторий транзакций
         user_repo: Репозиторий пользователей
         email_publisher: Publisher для отправки email
         yookassa_service: Класс сервиса Юкассы
-        
+
     Returns:
         PaymentService: Экземпляр сервиса платежей
     """
-    return PaymentService(balance_repo, transaction_repo, user_repo, email_publisher, yookassa_service)
+    return PaymentService(
+        balance_repo, transaction_repo, user_repo, email_publisher, yookassa_service
+    )
 
 
 def get_shop_parser() -> ShopParser:
     """
     Получить экземпляр ShopParser
-    
+
     Returns:
         ShopParser: Экземпляр парсера магазина
     """
@@ -269,15 +272,15 @@ def get_shop_parser() -> ShopParser:
 
 def get_component_parser_service(
     redis_service: RedisService = Depends(get_redis_service),
-    shop_parser: ShopParser = Depends(get_shop_parser)
+    shop_parser: ShopParser = Depends(get_shop_parser),
 ) -> ComponentParserService:
     """
     Получить экземпляр ComponentParserService
-    
+
     Args:
         redis_service: Сервис Redis
         shop_parser: Парсер магазина
-        
+
     Returns:
         ComponentParserService: Экземпляр сервиса парсинга компонентов
     """

@@ -1,6 +1,7 @@
 """
 Точка входа для Telegram бота
 """
+
 import asyncio
 import signal
 import logging
@@ -22,11 +23,11 @@ def signal_handler(sig, frame):
 async def main():
     """Основная функция запуска бота"""
     global bot_task
-    
+
     # Устанавливаем обработчики сигналов
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     try:
         bot_task = asyncio.create_task(start_bot())
         await bot_task
@@ -43,4 +44,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

@@ -1,9 +1,25 @@
 """
 Сервис для фоновых задач приложения
 """
+
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
+from app.dependencies.auth import cleanup_expired_cache
+from app.dependencies.services import (
+    get_auth_token_storage,
+    get_redis_service,
+    get_email_publisher,
+    get_yookassa_service,
+    get_rabbitmq_service,
+)
+from app.database import AsyncSessionLocal
+from app.repositories import (
+    TransactionRepository,
+    BalanceRepository,
+    UserRepository,
+)
+from app.models.balance import TransactionStatus
 
 
 logger = logging.getLogger(__name__)
@@ -13,8 +29,6 @@ async def cleanup_cache_task():
     """Периодическая очистка устаревшего кэша"""
     while True:
         try:
-            from app.dependencies.auth import cleanup_expired_cache
-
             active_count = await cleanup_expired_cache()
             print(f"Активных записей в кэше пользователей: {active_count}")
         except ImportError:
@@ -29,7 +43,6 @@ async def cleanup_auth_tokens_task():
     """Периодическая очистка истекших токенов авторизации"""
     while True:
         try:
-            from app.dependencies.services import get_auth_token_storage, get_redis_service
             redis_service = get_redis_service()
             auth_token_storage = get_auth_token_storage(redis_service=redis_service)
 
@@ -43,11 +56,6 @@ async def check_pending_payments_task():
     """Периодическая проверка статусов ожидающих платежей"""
     while True:
         try:
-            from app.database import AsyncSessionLocal
-            from app.repositories import TransactionRepository, BalanceRepository, UserRepository
-            from app.dependencies.services import get_email_publisher, get_yookassa_service, get_rabbitmq_service
-            from app.models.balance import TransactionStatus
-            
             rabbitmq_service = get_rabbitmq_service()
             email_publisher = get_email_publisher(rabbitmq_service=rabbitmq_service)
             yookassa_service = get_yookassa_service()
@@ -56,17 +64,21 @@ async def check_pending_payments_task():
                 transaction_repo = TransactionRepository(db)
                 balance_repo = BalanceRepository(db)
                 user_repo = UserRepository(db)
-                
+
                 # Получаем все транзакции со статусом PENDING, у которых есть payment_id
-                pending_transactions = await transaction_repo.get_pending_payment_transactions()
-                
+                pending_transactions = (
+                    await transaction_repo.get_pending_payment_transactions()
+                )
+
                 if pending_transactions:
-                    logger.info(f"Проверка статусов {len(pending_transactions)} ожидающих платежей")   
-                
+                    logger.info(
+                        f"Проверка статусов {len(pending_transactions)} ожидающих платежей"
+                    )
+
                 for transaction in pending_transactions:
                     if not transaction.payment_id:
                         continue
-                    
+
                     try:
                         # Проверяем, не прошло ли 5 минут с момента создания транзакции
                         if transaction.created_at:
@@ -77,73 +89,96 @@ async def check_pending_payments_task():
                             else:
                                 # Если created_at это строка, парсим её
                                 try:
-                                    created_at = datetime.fromisoformat(str(transaction.created_at).replace('Z', '+00:00'))
+                                    created_at = datetime.fromisoformat(
+                                        str(transaction.created_at).replace(
+                                            "Z", "+00:00"
+                                        )
+                                    )
                                     time_diff = now - created_at
                                 except (ValueError, AttributeError):
                                     time_diff = timedelta(0)
-                            
+
                             # Если прошло более 5 минут и платеж все еще не оплачен
-                            if time_diff > timedelta(minutes=5) and transaction.status == TransactionStatus.PENDING:
+                            if (
+                                time_diff > timedelta(minutes=5)
+                                and transaction.status == TransactionStatus.PENDING
+                            ):
                                 await transaction_repo.update(
-                                    transaction,
-                                    status=TransactionStatus.CANCELLED
+                                    transaction, status=TransactionStatus.CANCELLED
                                 )
                                 logger.info(
                                     f"Платеж {transaction.payment_id} отменен по таймауту (прошло {time_diff.total_seconds() / 60:.1f} минут). "
                                     f"Транзакция {transaction.id} обновлена на CANCELLED"
                                 )
                                 continue  # Переходим к следующей транзакции
-                        
+
                         # Получаем статус из Юкассы
-                        payment_status = await yookassa_service.get_payment_status(transaction.payment_id)
+                        payment_status = await yookassa_service.get_payment_status(
+                            transaction.payment_id
+                        )
                         paid = payment_status.get("paid", False)
                         cancelled = payment_status.get("cancelled", False)
                         yookassa_status = payment_status.get("status", "")
-                        
+
                         # Обновляем статус транзакции, если он изменился
                         if transaction.status == TransactionStatus.PENDING:
                             if paid and yookassa_status in ["succeeded", "paid"]:
                                 # Платеж успешен - пополняем баланс
-                                balance = await balance_repo.get_by_user_id(transaction.user_id)
-                                if not balance:
-                                    balance = await balance_repo.get_or_create(transaction.user_id)
-                                
-                                await balance_repo.deposit(transaction.user_id, transaction.amount)
-                                await transaction_repo.update(
-                                    transaction,
-                                    status=TransactionStatus.COMPLETED
+                                balance = await balance_repo.get_by_user_id(
+                                    transaction.user_id
                                 )
-                                
+                                if not balance:
+                                    balance = await balance_repo.get_or_create(
+                                        transaction.user_id
+                                    )
+
+                                await balance_repo.deposit(
+                                    transaction.user_id, transaction.amount
+                                )
+                                await transaction_repo.update(
+                                    transaction, status=TransactionStatus.COMPLETED
+                                )
+
                                 # Получаем обновленный баланс
-                                balance = await balance_repo.get_by_user_id(transaction.user_id)
-                                
+                                balance = await balance_repo.get_by_user_id(
+                                    transaction.user_id
+                                )
+
                                 logger.info(
                                     f"Платеж {transaction.payment_id} завершен. "
                                     f"Транзакция {transaction.id} обновлена на COMPLETED. "
                                     f"Баланс пользователя {transaction.user_id} пополнен на {transaction.amount}"
                                 )
-                                
+
                                 # Отправляем email о пополнении баланса (если email указан)
                                 try:
-                                    user = await user_repo.get_by_id(transaction.user_id)
+                                    user = await user_repo.get_by_id(
+                                        transaction.user_id
+                                    )
                                     if user and user.email and balance:
-                                        payment_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                        payment_time = datetime.now().strftime(
+                                            "%Y-%m-%d %H:%M:%S"
+                                        )
                                         await email_publisher.publish_balance_email(
                                             email=user.email,
                                             user_name=user.name,
                                             amount=str(transaction.amount),
                                             new_balance=str(balance.balance),
                                             payment_time=payment_time,
-                                            transaction_id=str(transaction.id)
+                                            transaction_id=str(transaction.id),
                                         )
                                 except Exception as e:
                                     # Логируем ошибку, но не прерываем процесс
-                                    logger.error(f"Ошибка при отправке email о пополнении баланса: {str(e)}")
-                            elif cancelled or yookassa_status in ["canceled", "cancelled"]:
+                                    logger.error(
+                                        f"Ошибка при отправке email о пополнении баланса: {str(e)}"
+                                    )
+                            elif cancelled or yookassa_status in [
+                                "canceled",
+                                "cancelled",
+                            ]:
                                 # Платеж отменен
                                 await transaction_repo.update(
-                                    transaction,
-                                    status=TransactionStatus.CANCELLED
+                                    transaction, status=TransactionStatus.CANCELLED
                                 )
                                 logger.info(
                                     f"Платеж {transaction.payment_id} отменен. "
@@ -156,8 +191,8 @@ async def check_pending_payments_task():
                         )
                         # Продолжаем проверку других транзакций
                         continue
-                
+
         except Exception as e:
             logger.error(f"Ошибка в задаче проверки платежей: {e}")
-        
+
         await asyncio.sleep(30)  # Проверяем каждые 30 секунд

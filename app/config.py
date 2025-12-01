@@ -11,62 +11,62 @@ class Settings(BaseSettings):
     postgres_user: str
     postgres_password: str
     postgres_db: str
-    
+
     # Google OAuth2
     google_client_id: str
     google_client_secret: str
-    google_redirect_uri: str 
-    
+    google_redirect_uri: str
+
     # Telegram Bot
     telegram_bot_token: str
     telegram_bot_username: str
-    
+
     # JWT
     secret_key: str
     algorithm: str
-    access_token_expire_minutes: int 
-    
+    access_token_expire_minutes: int
+
     # Frontend
-    frontend_url: str 
+    frontend_url: str
     backend_url: str
-    
+
     # Environment
     environment: str
-    
+
     # Redis
-    redis_host: str 
-    redis_port: int 
-    redis_db: int 
-    redis_password: Optional[str] 
-    
+    redis_host: str
+    redis_port: int
+    redis_db: int
+    redis_password: Optional[str]
+
     # First Admin (optional)
     first_admin_email: Optional[str] = None
     first_admin_name: Optional[str] = None
     first_admin_google_id: Optional[str] = None
     first_admin_role: Optional[str] = None
-    
+
     # YooKassa
     yookassa_shop_id: str
     yookassa_secret_key: str
     yookassa_test_mode: bool = False  # Режим тестирования
-    
+
     # RabbitMQ
     rabbitmq_url: Optional[str] = None
     rabbitmq_user: Optional[str] = None
     rabbitmq_password: Optional[str] = None
     rabbitmq_host: Optional[str] = None  # Используется в celery workers
     rabbitmq_port: Optional[int] = None  # Используется в celery workers
-    
+
     # Celery (опционально, используется только в celery workers)
     celery_backend_url: Optional[str] = None
-    
+
     # SMTP для отправки email
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = None
     smtp_user: Optional[str] = None
     smtp_password: Optional[str] = None
     smtp_from_email: Optional[str] = None
-    
+
     class Config:
         env_file = ".env"
 

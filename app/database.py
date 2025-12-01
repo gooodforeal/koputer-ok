@@ -5,19 +5,16 @@ from app.config import settings
 
 database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
 
-engine = create_async_engine(
-    database_url,
-    echo=False,
-    future=True
-)
+engine = create_async_engine(database_url, echo=False, future=True)
 
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False
+    autoflush=False,
 )
+
 
 # Создаем базовый класс для всех моделей
 class Base(DeclarativeBase):
@@ -30,5 +27,3 @@ async def get_db():
             yield session
         finally:
             await session.close()
-
-
